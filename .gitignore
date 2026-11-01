@@ -1,0 +1,12 @@
+target/
+data/
+logs/
+*.db
+*.db-wal
+*.db-shm
+*.tmp
+.idea/
+*.iml
+.DS_Store
+benchmarks/results/raw/
+__pycache__/
