@@ -42,31 +42,69 @@ public final class MetadataStore implements AutoCloseable {
         }
         this.url = "jdbc:sqlite:" + dbFile.toAbsolutePath();
         this.connection = ThreadLocal.withInitial(this::open);
-        try (Statement s = conn().createStatement()) {
-            s.execute("CREATE TABLE IF NOT EXISTS books (book_id INTEGER PRIMARY KEY, title TEXT, author TEXT, "
-                    + "language TEXT, year INTEGER, year_source TEXT, release_date TEXT, body_path TEXT, "
-                    + "indexed_at TEXT NOT NULL)");
-            s.execute("CREATE INDEX IF NOT EXISTS idx_books_author ON books(author COLLATE NOCASE)");
-            s.execute("CREATE INDEX IF NOT EXISTS idx_books_language ON books(language)");
-            s.execute("CREATE INDEX IF NOT EXISTS idx_books_year ON books(year)");
-        } catch (SQLException e) {
-            throw new IllegalStateException(e);
+        createSchema();
+    }
+
+    /**
+     * Crea la tabla y los índices si no existen. Si varias réplicas crean la BD a la vez, SQLite
+     * puede dar errores pasajeros (BUSY, o READONLY mientras otra conexión prepara el WAL): se
+     * reintenta con una conexión nueva.
+     */
+    private void createSchema() {
+        SQLException last = null;
+        for (int attempt = 1; attempt <= 10; attempt++) {
+            Connection c = conn();
+            try (Statement s = c.createStatement()) {
+                s.execute("CREATE TABLE IF NOT EXISTS books (book_id INTEGER PRIMARY KEY, title TEXT, author TEXT, "
+                        + "language TEXT, year INTEGER, year_source TEXT, release_date TEXT, body_path TEXT, "
+                        + "indexed_at TEXT NOT NULL)");
+                s.execute("CREATE INDEX IF NOT EXISTS idx_books_author ON books(author COLLATE NOCASE)");
+                s.execute("CREATE INDEX IF NOT EXISTS idx_books_language ON books(language)");
+                s.execute("CREATE INDEX IF NOT EXISTS idx_books_year ON books(year)");
+                return;
+            } catch (SQLException e) {
+                last = e;
+                connection.remove(); // el siguiente intento abre otra conexión
+                opened.remove(c);
+                try { c.close(); } catch (SQLException ignored) { }
+                if (!pause(attempt)) break;
+            }
+        }
+        throw new IllegalStateException("No se pudo crear el esquema en " + url, last);
+    }
+
+    /** Espera antes de reintentar (50 ms, 100 ms, 150 ms...); false si interrumpen el hilo. */
+    private static boolean pause(int attempt) {
+        try {
+            Thread.sleep(50L * attempt);
+            return true;
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+            return false;
         }
     }
 
     private Connection open() {
-        try {
-            Connection c = DriverManager.getConnection(url);
-            try (Statement s = c.createStatement()) {
-                s.execute("PRAGMA journal_mode=WAL");
-                s.execute("PRAGMA busy_timeout=10000");
-                s.execute("PRAGMA synchronous=NORMAL");
+        SQLException last = null;
+        for (int attempt = 1; attempt <= 10; attempt++) { // varias réplicas pueden abrir la BD a la vez
+            try {
+                Connection c = DriverManager.getConnection(url);
+                try (Statement s = c.createStatement()) {
+                    s.execute("PRAGMA busy_timeout=10000");
+                    s.execute("PRAGMA journal_mode=WAL");
+                    s.execute("PRAGMA synchronous=NORMAL");
+                } catch (SQLException e) {
+                    c.close();
+                    throw e;
+                }
+                opened.add(c);
+                return c;
+            } catch (SQLException e) {
+                last = e;
+                if (!pause(attempt)) break;
             }
-            opened.add(c);
-            return c;
-        } catch (SQLException e) {
-            throw new IllegalStateException("No se pudo abrir " + url, e);
         }
+        throw new IllegalStateException("No se pudo abrir " + url, last);
     }
 
     private Connection conn() {

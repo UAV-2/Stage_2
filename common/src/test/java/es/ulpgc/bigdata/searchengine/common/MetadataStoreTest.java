@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -57,6 +59,35 @@ class MetadataStoreTest {
         for (Thread t : ts) t.join();
         try (MetadataStore m = new MetadataStore(db)) {
             assertEquals(80, m.count());
+        }
+    }
+
+    @Test
+    void severalInstancesCanCreateTheDatabaseAtOnce() throws Exception {
+        // varias réplicas que arrancan a la vez sobre una BD que todavía no existe
+        Path db = tmp.resolve("nueva.db");
+        Thread[] ts = new Thread[8];
+        AtomicReference<Throwable> error = new AtomicReference<>();
+        CountDownLatch go = new CountDownLatch(1); // salen todas a la vez
+        for (int t = 0; t < ts.length; t++) {
+            int id = t;
+            ts[t] = new Thread(() -> {
+                try {
+                    go.await();
+                    try (MetadataStore m = new MetadataStore(db)) {
+                        m.upsertAll(List.of(book(id, "X", "en", 2000)));
+                    }
+                } catch (Throwable e) {
+                    error.compareAndSet(null, e);
+                }
+            });
+            ts[t].start();
+        }
+        go.countDown();
+        for (Thread t : ts) t.join();
+        assertNull(error.get(), () -> "una réplica no pudo abrir la BD: " + error.get());
+        try (MetadataStore m = new MetadataStore(db)) {
+            assertEquals(ts.length, m.count());
         }
     }
 }
