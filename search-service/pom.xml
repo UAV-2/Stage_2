@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>es.ulpgc.bigdata</groupId>
+    <artifactId>search-engine-stage2</artifactId>
+    <version>1.0.0</version>
+  </parent>
+  <artifactId>search-service</artifactId>
+  <name>Search Service (puerto 7003)</name>
+
+  <properties>
+    <main.class>es.ulpgc.bigdata.searchengine.search.SearchApp</main.class>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>es.ulpgc.bigdata</groupId>
+      <artifactId>common</artifactId>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <finalName>search-service</finalName>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+</project>
