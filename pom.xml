@@ -12,6 +12,7 @@
   <modules>
     <module>common</module>
     <module>ingestion-service</module>
+    <module>indexing-service</module>
   </modules>
 
   <properties>
