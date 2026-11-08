@@ -1,0 +1,483 @@
+openapi: 3.0.3
+info:
+  title: Search Engine - Stage 2 API
+  version: 1.0.0
+  description: |
+    API de los servicios del Stage 2. Todas las respuestas son JSON (UTF-8).
+
+    Tipos de endpoint (etiquetas):
+    - **frontend**: los consume el front-end (o un cliente HTTP que lo simule). Los ofrece el Search Service.
+    - **internal**: llamadas entre servicios. El consumidor es el Control Module (orquestador).
+    - **operational**: salud, estadísticas y administración. Los usan los scripts y las personas que operan el sistema.
+
+    Todos los errores tienen la forma `{"error": CODIGO, "message": texto, "status": http}`.
+    Todos los procesos se ejecutan en una sola máquina (Stage 2). Puertos por defecto:
+    control 7000, ingestion 7001, indexing 7002, search 7003. Cada réplica adicional usa el puerto base + 10.
+
+    CORS: todos los servicios responden con `Access-Control-Allow-Origin` según `CORS_ORIGINS` (por defecto `*`),
+    así que un front-end servido desde otro origen puede llamar directamente al Search Service.
+servers:
+  - url: http://localhost:7003
+    description: Search Service (front-end)
+  - url: http://localhost:7001
+    description: Ingestion Service (interno)
+  - url: http://localhost:7002
+    description: Indexing Service (interno)
+  - url: http://localhost:7000
+    description: Control Module (administración)
+tags:
+  - name: frontend
+    description: "Proveedor: Search Service. Consumidor: front-end."
+  - name: internal
+    description: "Proveedor: Ingestion / Indexing Service. Consumidor: Control Module."
+  - name: operational
+    description: "Salud y administración. Consumidores: scripts, operadores y el Control Module (GET /status para esperar a que los servicios arranquen)."
+
+paths:
+  /search:
+    get:
+      tags: [frontend]
+      summary: Búsqueda por palabras clave con filtros opcionales y paginación
+      description: |
+        Proveedor: Search Service. Consumidor: front-end.
+
+        - **Consulta**: `q` se tokeniza igual que los libros (A-Z a minúsculas, secuencias `[a-z]+`, longitud >= 2, sin stopwords).
+          Un libro coincide si contiene **todos** los términos (AND). Si `q` solo contiene stopwords, el resultado está vacío (200).
+        - **Filtros** (combinables): `author` es una coincidencia parcial sin distinguir mayúsculas; `language` es un código exacto; `year` es un año exacto.
+        - **Orden**: relevancia descendente con score = suma de (1 + ln tf) * ln(1 + N/df); los empates se ordenan por `book_id` ascendente.
+        - **Paginación**: `total` es el número de coincidencias tras aplicar los filtros; `results` contiene como mucho `limit` libros a partir de `offset`.
+        - **Consistencia**: cada consulta lee una única versión publicada del índice (`index_version`); nunca mezcla dos versiones.
+        - Es de solo lectura y siempre síncrona.
+      operationId: search
+      parameters:
+        - {name: q, in: query, required: true, schema: {type: string, minLength: 1, maxLength: 500}, example: adventure island}
+        - {name: author, in: query, required: false, schema: {type: string, maxLength: 200}, example: defoe}
+        - {name: language, in: query, required: false, description: "Código de idioma (en, es, fr, de...). No distingue mayúsculas.", schema: {type: string, pattern: "^[A-Za-z]{2,12}$"}, example: en}
+        - {name: year, in: query, required: false, description: "Año de publicación original si el header lo indica; si no, el año de publicación en Gutenberg (ver /books/{book_id}.year_source).", schema: {type: integer, minimum: 1000, maximum: 9999}, example: 1719}
+        - {name: offset, in: query, required: false, schema: {type: integer, minimum: 0, default: 0}}
+        - {name: limit, in: query, required: false, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}
+      responses:
+        "200":
+          description: Resultados (también cuando no hay coincidencias)
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/SearchResponse"}
+              examples:
+                withResults:
+                  value:
+                    query: adventure
+                    terms: [adventure]
+                    filters: {language: en}
+                    total: 25
+                    offset: 0
+                    limit: 2
+                    index_version: 42
+                    results:
+                      - {book_id: 120, title: Treasure Island, author: Robert Louis Stevenson, language: en, year: 1883, score: 6.12}
+                      - {book_id: 1342, title: Pride and Prejudice, author: Jane Austen, language: en, year: 1813, score: 2.03}
+                empty:
+                  value: {query: zebra, terms: [zebra], filters: {}, total: 0, offset: 0, limit: 20, index_version: 42, results: []}
+        "400":
+          description: "Parámetros inválidos: MISSING_QUERY, QUERY_TOO_LONG, INVALID_AUTHOR, INVALID_LANGUAGE, INVALID_YEAR, INVALID_OFFSET, INVALID_LIMIT"
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Error"}
+              example: {error: INVALID_LIMIT, message: "'limit' debe ser un entero entre 1 y 100", status: 400}
+
+  /books/{book_id}:
+    get:
+      tags: [frontend]
+      summary: Detalle de un libro ya buscable
+      description: |
+        Proveedor: Search Service. Consumidor: front-end (página de detalle).
+        Solo devuelve libros incluidos en la versión publicada del índice.
+      operationId: getBook
+      parameters:
+        - {$ref: "#/components/parameters/BookId"}
+      responses:
+        "200":
+          description: Metadatos del libro
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/BookDetails"}
+              example: {book_id: 1342, title: Pride and Prejudice, author: Jane Austen, language: en, year: 1813, year_source: original_publication, release_date: "June 1, 1998", index_version: 42}
+        "400": {$ref: "#/components/responses/InvalidBookId"}
+        "404":
+          description: El libro no existe o aún no está publicado (BOOK_NOT_FOUND)
+          content: {application/json: {schema: {$ref: "#/components/schemas/Error"}}}
+
+  /search/filters:
+    get:
+      tags: [frontend]
+      summary: Valores disponibles para los filtros
+      description: "Proveedor: Search Service. Consumidor: front-end, para rellenar los desplegables de idioma, año y autor."
+      operationId: getFilters
+      responses:
+        "200":
+          description: Idiomas con su número de libros, rango de años y los 50 autores con más libros
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Filters"}
+              example:
+                languages: [{code: en, books: 950}, {code: fr, books: 30}]
+                years: {min: 1597, max: 1924}
+                top_authors: [{name: Charles Dickens, books: 12}]
+                books_searchable: 1000
+                index_version: 42
+
+  /ingest/{book_id}:
+    post:
+      tags: [internal]
+      summary: Descarga un libro y lo guarda en el datalake
+      description: |
+        Proveedor: Ingestion Service. Consumidor: Control Module.
+
+        - **Síncrono**: un 200 significa que el trabajo ha **terminado**. El header y el body se han escrito de forma atómica
+          y el libro está registrado en `datalake/_locations.tsv`, así que ya se puede indexar.
+        - **Idempotente**: si el libro ya estaba, no se descarga otra vez y devuelve 200 con `already_present: true`.
+          Las peticiones concurrentes del mismo libro (también desde varias réplicas) se serializan con un lock por libro.
+        - **Para el llamador**: timeout recomendado de 120 s (la descarga respeta 1 s entre peticiones a Gutenberg).
+          Ante un timeout, un error de red o un 502, conviene reintentar con espera exponencial (sin riesgo, porque la operación es idempotente).
+          Ante un 404 o un 422, no se debe reintentar.
+      operationId: ingestBook
+      parameters:
+        - {$ref: "#/components/parameters/BookId"}
+      responses:
+        "200":
+          description: Libro disponible en el datalake
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/IngestResponse"}
+              example: {book_id: 1342, status: downloaded, path: datalake/20251008/14/1342, already_present: false, elapsed_ms: 812, replica_id: ingestion-0}
+        "400": {$ref: "#/components/responses/InvalidBookId"}
+        "404":
+          description: El libro no existe en el origen (BOOK_NOT_FOUND). Fallo permanente.
+          content: {application/json: {schema: {$ref: "#/components/schemas/Error"}}}
+        "422":
+          description: El libro no tiene los marcadores START/END (INVALID_BOOK_FORMAT). Fallo permanente.
+          content: {application/json: {schema: {$ref: "#/components/schemas/Error"}}}
+        "502":
+          description: Fallo al descargar del origen (UPSTREAM_ERROR). Fallo transitorio, se puede reintentar.
+          content: {application/json: {schema: {$ref: "#/components/schemas/Error"}}}
+
+  /ingest/status/{book_id}:
+    get:
+      tags: [internal]
+      summary: Indica si un libro está disponible en el datalake
+      description: "Proveedor: Ingestion Service. Consumidor: Control Module o diagnóstico. Es de solo lectura."
+      operationId: ingestStatus
+      parameters:
+        - {$ref: "#/components/parameters/BookId"}
+      responses:
+        "200":
+          description: Estado
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [book_id, status, path]
+                properties:
+                  book_id: {type: integer}
+                  status: {type: string, enum: [available, not_available]}
+                  path: {type: string, nullable: true}
+              example: {book_id: 1342, status: available, path: datalake/20251008/14/1342}
+        "400": {$ref: "#/components/responses/InvalidBookId"}
+
+  /ingest/list:
+    get:
+      tags: [internal]
+      summary: Libros disponibles en el datalake
+      description: "Proveedor: Ingestion Service. Consumidor: Control Module o diagnóstico."
+      operationId: ingestList
+      responses:
+        "200":
+          description: Ids ordenados
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [count, books]
+                properties:
+                  count: {type: integer}
+                  books: {type: array, items: {type: integer}}
+              example: {count: 3, books: [5, 17, 1342]}
+
+  /index/update/{book_id}:
+    post:
+      tags: [internal]
+      summary: Procesa un libro del datalake (metadatos + términos)
+      description: |
+        Proveedor: Indexing Service. Consumidor: Control Module.
+
+        - Lee el libro del datalake, extrae los metadatos (que se guardan en SQLite con un upsert) y deja sus términos
+          **pendientes de publicar** en esta réplica.
+        - Un 200 significa que el procesamiento ha terminado, pero el libro **no es buscable** hasta que se llame a
+          `POST /index/publish` (modo `batch`, por defecto). Con `PUBLISH_MODE=immediate`, el propio update publica y
+          responde con `published: true`.
+        - **Idempotente**: si el libro ya está publicado devuelve 200 con `already_indexed: true` y no hace nada.
+          Repetir un update de un libro pendiente lo sustituye y no crea duplicados.
+        - El Control Module envía siempre el mismo libro a la misma réplica (book_id % N) para no procesarlo dos veces en paralelo.
+        - **Para el llamador**: timeout recomendado de 120 s. Ante un error de red o un 5xx, conviene reintentar o probar con otra réplica.
+      operationId: indexUpdate
+      parameters:
+        - {$ref: "#/components/parameters/BookId"}
+      responses:
+        "200":
+          description: Libro procesado (pendiente de publicar o ya publicado)
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/IndexUpdateResponse"}
+              example: {book_id: 1342, index: updated, terms: 6210, published: false, already_indexed: false, pending_books: 7}
+        "400": {$ref: "#/components/responses/InvalidBookId"}
+        "409":
+          description: El libro no está en el datalake (BOOK_NOT_INGESTED). Hay que ingerirlo primero.
+          content: {application/json: {schema: {$ref: "#/components/schemas/Error"}}}
+
+  /index/publish:
+    post:
+      tags: [internal]
+      summary: Publica los libros pendientes de esta réplica
+      description: |
+        Proveedor: Indexing Service. Consumidor: Control Module (periódicamente y al acumular un lote).
+
+        - Escribe un segmento inmutable con todos los libros pendientes y lo añade a `datamarts/index/manifest.json`
+          de forma atómica. El manifest se modifica con un lock entre réplicas.
+        - Al recibir el 200 los libros ya son buscables: las réplicas de búsqueda detectan la nueva versión en menos
+          de `REFRESH_MS` (500 ms por defecto).
+        - **Idempotente**: los libros que ya estaban publicados (por ejemplo, por otra réplica) aparecen en `skipped`.
+          Si no hay pendientes, devuelve la versión actual sin cambios.
+      operationId: indexPublish
+      responses:
+        "200":
+          description: Resultado de la publicación
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/PublishResponse"}
+              example: {version: 43, published: [84, 1342], skipped: [], segment: seg-1729600000000-indexing-0-12-ab12cd34, pending_books: 0}
+
+  /index/rebuild:
+    post:
+      tags: [operational]
+      summary: Reconstruye índice y metadatos desde cero con todo el datalake
+      description: |
+        Proveedor: Indexing Service. Consumidor: administración.
+        Es síncrono y largo (segundos o minutos), con la tokenización en paralelo (`INDEX_THREADS`).
+        Mientras dura, la búsqueda sigue sirviendo la versión anterior; al terminar, la sustituye de forma atómica.
+        Es idempotente: repetirlo produce el mismo contenido. Solo se ejecuta un rebuild a la vez por réplica.
+      operationId: indexRebuild
+      responses:
+        "200":
+          description: Rebuild terminado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  books_processed: {type: integer}
+                  elapsed_time: {type: string}
+                  version: {type: integer}
+                  worker_threads: {type: integer}
+              example: {books_processed: 1000, elapsed_time: 35.2s, version: 44, worker_threads: 4}
+
+  /index/compact:
+    post:
+      tags: [operational]
+      summary: Fusiona los segmentos publicados en uno solo
+      description: |
+        Proveedor: Indexing Service. Consumidor: administración.
+        También se lanza automáticamente en segundo plano cuando hay más de `COMPACT_THRESHOLD` segmentos.
+        Los segmentos sustituidos se borran tras un tiempo de gracia (`RETIRED_GRACE_MS`), para no afectar a las consultas que aún los usan.
+      operationId: indexCompact
+      responses:
+        "200":
+          description: Resultado
+          content:
+            application/json:
+              example: {compacted: true, version: 45, merged_segments: 17, terms: 152340}
+
+  /index/status:
+    get:
+      tags: [operational]
+      summary: Estadísticas del índice
+      description: "Proveedor: Indexing Service. Consumidor: operadores y scripts de benchmark."
+      operationId: indexStatus
+      responses:
+        "200":
+          description: Estado
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/IndexStatus"}
+              example: {books_indexed: 1200, last_update: "2025-10-08T14:05:00Z", index_size_MB: 42.7, version: 43, segments: 5, pending_books: 0, metadata_rows: 1200, publish_mode: batch, replica_id: indexing-0, worker_threads: 4}
+
+  /control/run:
+    post:
+      tags: [operational]
+      summary: Lanza una ejecución del flujo
+      description: |
+        Proveedor: Control Module. Consumidor: administración.
+        Es **asíncrono**: devuelve 202 y procesa en segundo plano los `books` siguientes de `BOOK_IDS` que aún no se han
+        procesado, además de los que quedaron pendientes de una ejecución anterior. El progreso se consulta en `GET /control/status`.
+      operationId: controlRun
+      parameters:
+        - {name: books, in: query, required: false, schema: {type: integer, minimum: 1, default: 10}}
+      responses:
+        "202":
+          description: Aceptada
+          content: {application/json: {example: {status: accepted, books: 50, message: "Consulta el progreso en GET /control/status"}}}
+        "400":
+          description: INVALID_BOOKS
+          content: {application/json: {schema: {$ref: "#/components/schemas/Error"}}}
+        "409":
+          description: Ya hay una ejecución en curso (RUN_IN_PROGRESS)
+          content: {application/json: {schema: {$ref: "#/components/schemas/Error"}}}
+
+  /control/status:
+    get:
+      tags: [operational]
+      summary: Progreso y métricas de la última ejecución
+      operationId: controlStatus
+      responses:
+        "200":
+          description: Fase (idle, waiting_for_services, running, final_publish) y métricas
+          content: {application/json: {example: {phase: running, last_run: {books_requested: 50, books_ingested: 20, books_published: 15, ingestion_throughput_books_s: 0.9}}}}
+
+  /status:
+    get:
+      tags: [operational]
+      summary: Salud del proceso (todos los servicios)
+      description: |
+        Lo ofrecen todos los servicios. El Control Module lo usa para esperar a que los servicios arranquen, y los
+        scripts de benchmark para obtener el CPU y la memoria por proceso.
+      operationId: health
+      responses:
+        "200":
+          description: El proceso está vivo. Cada servicio añade sus propios campos.
+          content:
+            application/json:
+              example: {service: search-service, replica_id: search-0, status: running, pid: 4242, port: 7003, http_threads: 32, uptime_s: 120, heap_used_MB: 85, process_cpu_load: 0.12, index_version: 42, books_searchable: 1000}
+
+components:
+  parameters:
+    BookId:
+      name: book_id
+      in: path
+      required: true
+      description: Id de Project Gutenberg (entero positivo)
+      schema: {type: integer, minimum: 1}
+      example: 1342
+  responses:
+    InvalidBookId:
+      description: book_id no es un entero positivo (INVALID_BOOK_ID)
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/Error"}
+          example: {error: INVALID_BOOK_ID, message: "'abc' no es un book_id válido (entero positivo)", status: 400}
+  schemas:
+    Error:
+      type: object
+      required: [error, message, status]
+      properties:
+        error: {type: string, description: Código estable del error}
+        message: {type: string}
+        status: {type: integer}
+    BookSummary:
+      type: object
+      required: [book_id, title, author, language, year]
+      properties:
+        book_id: {type: integer}
+        title: {type: string, nullable: true}
+        author: {type: string, nullable: true}
+        language: {type: string, nullable: true}
+        year: {type: integer, nullable: true}
+    SearchResult:
+      allOf:
+        - $ref: "#/components/schemas/BookSummary"
+        - type: object
+          required: [score]
+          properties:
+            score: {type: number}
+    SearchResponse:
+      type: object
+      required: [query, terms, filters, total, offset, limit, index_version, results]
+      properties:
+        query: {type: string}
+        terms: {type: array, items: {type: string}, description: Términos usados tras tokenizar q}
+        filters:
+          type: object
+          description: Solo los filtros recibidos
+          properties:
+            author: {type: string}
+            language: {type: string}
+            year: {type: integer}
+        total: {type: integer, description: Coincidencias totales tras los filtros}
+        offset: {type: integer}
+        limit: {type: integer}
+        index_version: {type: integer, description: Versión publicada del índice usada en la consulta}
+        results: {type: array, items: {$ref: "#/components/schemas/SearchResult"}}
+    BookDetails:
+      allOf:
+        - $ref: "#/components/schemas/BookSummary"
+        - type: object
+          properties:
+            year_source: {type: string, nullable: true, enum: [original_publication, gutenberg_release, null]}
+            release_date: {type: string, nullable: true}
+            index_version: {type: integer}
+    Filters:
+      type: object
+      properties:
+        languages:
+          type: array
+          items: {type: object, properties: {code: {type: string}, books: {type: integer}}}
+        years:
+          type: object
+          properties:
+            min: {type: integer, nullable: true}
+            max: {type: integer, nullable: true}
+        top_authors:
+          type: array
+          items: {type: object, properties: {name: {type: string}, books: {type: integer}}}
+        books_searchable: {type: integer}
+        index_version: {type: integer}
+    IngestResponse:
+      type: object
+      required: [book_id, status, path, already_present]
+      properties:
+        book_id: {type: integer}
+        status: {type: string, enum: [downloaded]}
+        path: {type: string, example: datalake/20251008/14/1342}
+        already_present: {type: boolean}
+        elapsed_ms: {type: integer}
+        replica_id: {type: string}
+    IndexUpdateResponse:
+      type: object
+      required: [book_id, index, published, already_indexed, pending_books]
+      properties:
+        book_id: {type: integer}
+        index: {type: string, enum: [updated]}
+        terms: {type: integer, description: Términos distintos del libro (no aparece si ya estaba indexado)}
+        published: {type: boolean, description: true si el libro ya es buscable}
+        version: {type: integer, description: Solo en PUBLISH_MODE=immediate}
+        already_indexed: {type: boolean}
+        pending_books: {type: integer, description: Libros pendientes de publicar en esta réplica}
+    PublishResponse:
+      type: object
+      required: [version, published, skipped, pending_books]
+      properties:
+        version: {type: integer}
+        published: {type: array, items: {type: integer}}
+        skipped: {type: array, items: {type: integer}, description: Libros que ya estaban publicados}
+        segment: {type: string, nullable: true}
+        pending_books: {type: integer}
+    IndexStatus:
+      type: object
+      properties:
+        books_indexed: {type: integer}
+        last_update: {type: string, nullable: true}
+        index_size_MB: {type: number}
+        version: {type: integer}
+        segments: {type: integer}
+        pending_books: {type: integer}
+        metadata_rows: {type: integer}
+        publish_mode: {type: string, enum: [batch, immediate]}
+        replica_id: {type: string}
+        worker_threads: {type: integer}
