@@ -1,0 +1,22 @@
+# Libros de Project Gutenberg (uno por línea). El Control Module los procesa en este orden.
+# Lista inicial de clásicos en inglés; se puede ampliar.
+1342
+84
+11
+1661
+2701
+98
+1952
+74
+345
+1080
+174
+2542
+5200
+76
+16328
+43
+120
+215
+1260
+768
