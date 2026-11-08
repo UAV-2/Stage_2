@@ -1,0 +1,73 @@
+### Ejemplos ejecutables (cliente HTTP de IntelliJ / VS Code REST Client).
+### Arranca antes los servicios: scripts/start_all.sh y scripts/run_pipeline.sh 20
+
+### --- Front-end: Search Service (7003) ---
+
+### Búsqueda por palabra clave
+GET http://localhost:7003/search?q=adventure
+
+### Varias palabras (AND) y página de 5
+GET http://localhost:7003/search?q=whale%20sea&limit=5
+
+### Filtro individual: idioma
+GET http://localhost:7003/search?q=love&language=en
+
+### Filtros combinados
+GET http://localhost:7003/search?q=love&author=austen&language=en&year=1813
+
+### Segunda página
+GET http://localhost:7003/search?q=love&offset=5&limit=5
+
+### Sin resultados -> 200 con results vacío
+GET http://localhost:7003/search?q=zzzzzz
+
+### Parámetro inválido -> 400 INVALID_LIMIT
+GET http://localhost:7003/search?q=love&limit=1000
+
+### Falta q -> 400 MISSING_QUERY
+GET http://localhost:7003/search
+
+### Detalle de un libro
+GET http://localhost:7003/books/1342
+
+### Valores para los filtros
+GET http://localhost:7003/search/filters
+
+### --- Interno: Ingestion Service (7001) ---
+
+### Descargar un libro (idempotente)
+POST http://localhost:7001/ingest/1342
+
+### ¿Está disponible?
+GET http://localhost:7001/ingest/status/1342
+
+### Listado del datalake
+GET http://localhost:7001/ingest/list
+
+### Libro inexistente -> 404 BOOK_NOT_FOUND
+POST http://localhost:7001/ingest/999999999
+
+### --- Interno: Indexing Service (7002) ---
+
+### Procesar un libro (queda pendiente de publicar)
+POST http://localhost:7002/index/update/1342
+
+### Publicar los pendientes
+POST http://localhost:7002/index/publish
+
+### Libro no ingerido -> 409 BOOK_NOT_INGESTED
+POST http://localhost:7002/index/update/999999998
+
+### Estado del índice
+GET http://localhost:7002/index/status
+
+### --- Operacional ---
+
+### Salud de cada servicio
+GET http://localhost:7003/status
+
+### Lanzar el orquestador (si se arrancó en modo servidor en 7000)
+POST http://localhost:7000/control/run?books=5
+
+### Progreso del orquestador
+GET http://localhost:7000/control/status
