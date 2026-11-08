@@ -10,3 +10,5 @@ logs/
 .DS_Store
 benchmarks/results/raw/
 __pycache__/
+cache/
+data-bench/
