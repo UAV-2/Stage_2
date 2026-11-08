@@ -25,7 +25,8 @@ case "${1:-all}" in
     run jmh_all.csv "-wi 5 -i 10 -f 2 -jvmArgsAppend -Xmx2g" ;;
   threads)
     for t in 1 2 4 8; do
-      run "jmh_threads_t$t.csv" "TextProcessingBenchmark.tokenizeAndCount|SearchBenchmark -t $t -wi 5 -i 10 -f 2 -p words=50000 -p books=500 -p segments=1"
+      run "jmh_threads_tokenize_t$t.csv" "TextProcessingBenchmark.tokenizeAndCount -t $t -wi 5 -i 10 -f 2 -p words=50000"
+      run "jmh_threads_search_t$t.csv" "SearchBenchmark -t $t -wi 5 -i 10 -f 2 -p books=500 -p segments=1"
     done ;;
   quick)
     run jmh_quick.csv "-wi 1 -i 2 -f 1 -w 1s -r 1s" ;;

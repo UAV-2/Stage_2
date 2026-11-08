@@ -4,7 +4,7 @@
     python3 benchmarks/plot_results.py          -> benchmarks/results/plots/*.png
 
 Lee los CSV que encuentre en benchmarks/results/: search_load.csv, pipeline.csv,
-resources.csv, jmh_all.csv y jmh_threads_t*.csv. Muestra media ± desviación típica
+resources.csv, jmh_all.csv y jmh_threads_*_t*.csv. Muestra media ± desviación típica
 de las repeticiones y etiqueta cada configuración (réplicas, hilos, concurrencia).
 """
 import re
@@ -138,11 +138,11 @@ def jmh():
             ax.set_xlabel(unit + " (escala logarítmica)")
             ax.set_title(f"JMH ({mode}), media ± error al 99,9 %", loc="left")
             save(fig, f"jmh_{mode}")
-    files = sorted(RES.glob("jmh_threads_t*.csv"))
+    files = sorted(RES.glob("jmh_threads_*_t*.csv"))
     if files:
         rows = []
         for p in files:
-            t = int(re.search(r"t(\d+)", p.stem).group(1))
+            t = int(re.search(r"_t(\d+)$", p.stem).group(1))
             d = pd.read_csv(p)
             d["threads"] = t
             rows.append(d[d["Mode"] == "thrpt"] if (d["Mode"] == "thrpt").any() else d)
