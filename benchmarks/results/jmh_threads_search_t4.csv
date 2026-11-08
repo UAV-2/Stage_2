@@ -1,0 +1,3 @@
+"Benchmark","Mode","Threads","Samples","Score","Score Error (99.9%)","Unit","Param: books","Param: segments"
+"es.ulpgc.bigdata.searchengine.benchmark.SearchBenchmark.searchWorkload","thrpt",4,20,0.601325,0.021544,"ops/ms",500,1
+"es.ulpgc.bigdata.searchengine.benchmark.SearchBenchmark.searchWorkload","avgt",4,20,5.685400,0.575279,"ms/op",500,1

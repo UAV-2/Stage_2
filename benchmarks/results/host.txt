@@ -1,0 +1,7 @@
+fecha: Sun Nov  1 21:25:31 GMTST 2026
+MINGW64_NT-10.0-26200 hugoamador 3.4.10-87d57229.x86_64 2024-02-14 20:17 UTC x86_64 Msys
+CPU: model name	: Intel(R) Core(TM) i7-14700K
+núcleos: 28
+MemTotal:       33231044 kB
+java version "21.0.7" 2025-04-15 LTS
+SOURCE=local:/c/Users/hugoa/stage2-bench/cache BENCH_BOOKS=100

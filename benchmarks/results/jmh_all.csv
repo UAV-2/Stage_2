@@ -1,0 +1,21 @@
+"Benchmark","Mode","Threads","Samples","Score","Score Error (99.9%)","Unit","Param: batchBooks","Param: books","Param: segments","Param: words"
+"es.ulpgc.bigdata.searchengine.benchmark.SearchBenchmark.searchWorkload","thrpt",1,20,0.856353,0.013703,"ops/ms",,100,1,
+"es.ulpgc.bigdata.searchengine.benchmark.SearchBenchmark.searchWorkload","thrpt",1,20,0.849996,0.009999,"ops/ms",,100,10,
+"es.ulpgc.bigdata.searchengine.benchmark.SearchBenchmark.searchWorkload","thrpt",1,20,0.205783,0.003016,"ops/ms",,500,1,
+"es.ulpgc.bigdata.searchengine.benchmark.SearchBenchmark.searchWorkload","thrpt",1,20,0.208513,0.002456,"ops/ms",,500,10,
+"es.ulpgc.bigdata.searchengine.benchmark.IndexPublishBenchmark.publishBatch","avgt",1,20,1484.700926,62.196451,"ms/op",1,,,
+"es.ulpgc.bigdata.searchengine.benchmark.IndexPublishBenchmark.publishBatch","avgt",1,20,4967.918143,146.121265,"ms/op",10,,,
+"es.ulpgc.bigdata.searchengine.benchmark.IndexPublishBenchmark.publishBatch","avgt",1,20,12990.987073,7617.253880,"ms/op",50,,,
+"es.ulpgc.bigdata.searchengine.benchmark.SearchBenchmark.searchWorkload","avgt",1,20,1.185299,0.007410,"ms/op",,100,1,
+"es.ulpgc.bigdata.searchengine.benchmark.SearchBenchmark.searchWorkload","avgt",1,20,1.182374,0.010172,"ms/op",,100,10,
+"es.ulpgc.bigdata.searchengine.benchmark.SearchBenchmark.searchWorkload","avgt",1,20,4.972078,0.030370,"ms/op",,500,1,
+"es.ulpgc.bigdata.searchengine.benchmark.SearchBenchmark.searchWorkload","avgt",1,20,4.900331,0.039110,"ms/op",,500,10,
+"es.ulpgc.bigdata.searchengine.benchmark.TextProcessingBenchmark.parseHeader","avgt",1,20,1.397104,0.007626,"us/op",,,,10000
+"es.ulpgc.bigdata.searchengine.benchmark.TextProcessingBenchmark.parseHeader","avgt",1,20,1.522411,0.085743,"us/op",,,,50000
+"es.ulpgc.bigdata.searchengine.benchmark.TextProcessingBenchmark.parseHeader","avgt",1,20,1.387255,0.006686,"us/op",,,,100000
+"es.ulpgc.bigdata.searchengine.benchmark.TextProcessingBenchmark.splitHeaderBody","avgt",1,20,197.279295,1.134161,"us/op",,,,10000
+"es.ulpgc.bigdata.searchengine.benchmark.TextProcessingBenchmark.splitHeaderBody","avgt",1,20,1013.207699,23.221308,"us/op",,,,50000
+"es.ulpgc.bigdata.searchengine.benchmark.TextProcessingBenchmark.splitHeaderBody","avgt",1,20,2058.134911,28.305853,"us/op",,,,100000
+"es.ulpgc.bigdata.searchengine.benchmark.TextProcessingBenchmark.tokenizeAndCount","avgt",1,20,663.227645,6.073903,"us/op",,,,10000
+"es.ulpgc.bigdata.searchengine.benchmark.TextProcessingBenchmark.tokenizeAndCount","avgt",1,20,3291.987734,15.082025,"us/op",,,,50000
+"es.ulpgc.bigdata.searchengine.benchmark.TextProcessingBenchmark.tokenizeAndCount","avgt",1,20,6860.007514,57.754632,"us/op",,,,100000

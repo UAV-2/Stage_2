@@ -1,0 +1,2 @@
+"Benchmark","Mode","Threads","Samples","Score","Score Error (99.9%)","Unit","Param: words"
+"es.ulpgc.bigdata.searchengine.benchmark.TextProcessingBenchmark.tokenizeAndCount","avgt",2,20,3482.879528,25.875779,"us/op",50000
