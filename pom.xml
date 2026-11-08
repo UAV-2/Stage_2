@@ -15,6 +15,7 @@
     <module>indexing-service</module>
     <module>search-service</module>
     <module>control-module</module>
+    <module>benchmarks</module>
   </modules>
 
   <properties>
