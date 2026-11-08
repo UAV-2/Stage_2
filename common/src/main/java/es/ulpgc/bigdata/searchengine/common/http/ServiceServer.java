@@ -3,6 +3,7 @@ package es.ulpgc.bigdata.searchengine.common.http;
 import es.ulpgc.bigdata.searchengine.common.Config;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
+import io.javalin.http.HttpResponseException;
 import java.lang.management.ManagementFactory;
 import java.time.Instant;
 import java.util.LinkedHashMap;
@@ -65,11 +66,15 @@ public final class ServiceServer {
             LOG.error("Error no controlado en {} {}", ctx.method(), ctx.path(), e);
             error(ctx, 500, "INTERNAL_ERROR", e.getClass().getSimpleName() + ": " + e.getMessage());
         });
-        app.error(404, ctx -> {
-            if (ctx.result() == null || ctx.result().isEmpty())
-                error(ctx, 404, "NOT_FOUND", "Ruta no encontrada: " + ctx.method() + " " + ctx.path());
+        app.exception(HttpResponseException.class, (e, ctx) -> { // rutas inexistentes, método no permitido...
+            String code = switch (e.getStatus()) {
+                case 404 -> "NOT_FOUND";
+                case 405 -> "METHOD_NOT_ALLOWED";
+                default -> "HTTP_" + e.getStatus();
+            };
+            error(ctx, e.getStatus(), code, e.getStatus() == 404
+                    ? "Ruta no encontrada: " + ctx.method() + " " + ctx.path() : e.getMessage());
         });
-        app.error(405, ctx -> error(ctx, 405, "METHOD_NOT_ALLOWED", "Método no permitido: " + ctx.method()));
         app.get("/status", ctx -> {
             Map<String, Object> s = new LinkedHashMap<>();
             s.put("service", service);
