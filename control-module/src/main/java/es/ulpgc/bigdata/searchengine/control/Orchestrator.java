@@ -172,6 +172,8 @@ public final class Orchestrator {
                         updatedAtNanos.put(id, System.nanoTime());
                         Set<Integer> waiting = awaitingPublish.get(base);
                         waiting.add(id);
+                        // una publicación concurrente pudo confirmarlo antes de añadirlo aquí
+                        if (state.isIndexed(id)) waiting.remove(id);
                         if (waiting.size() >= s.publishBatch()) publish(base);
                     }
                     return;
@@ -219,11 +221,9 @@ public final class Orchestrator {
                 JsonArray a = r.body().getAsJsonArray(field);
                 if (a != null) a.forEach(e -> confirmed.add(e.getAsInt()));
             }
-            for (int id : snapshot) {
-                if (confirmed.contains(id)) {
-                    waiting.remove(id);
-                    markPublished(id);
-                }
+            for (int id : confirmed) { // primero se registra y después se quita de la espera
+                markPublished(id);
+                waiting.remove(id);
             }
             snapshot.removeAll(confirmed);
             if (!snapshot.isEmpty()) {
