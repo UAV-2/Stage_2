@@ -1,0 +1,735 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Stage 2 report: Building a Service-Oriented Architecture</title>
+<!--
+  Stage 2 report (Big Data, ULPGC). Edit this file and rebuild the PDF with:
+    bash generar_pdf.sh
+  Figures: python figuras.py  (reads ../resultados_benchmarks/*.csv)
+-->
+<style>
+  @page { size: A4; margin: 22mm 21mm 20mm 21mm;
+          @bottom-center { content: counter(page); font: 9pt "Palatino Linotype", "Book Antiqua", Georgia, serif; color: #444; } }
+  @page cover { @bottom-center { content: none; } }
+  :root { --rule: #222; --soft: #f5f5f2; --blue: #2a78d6; --orange: #eb6834; --grey: #6f6e69; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { font-family: "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif; font-size: 10.4pt;
+         line-height: 1.42; color: #111; margin: 0; text-align: justify; hyphens: auto; counter-reset: h1 fig tab; background: #fff; }
+  .cover { page: cover; height: 250mm; display: flex; flex-direction: column; align-items: center; text-align: center;
+           break-after: page; }
+  .cover .inst { margin-top: 38mm; font-size: 11pt; line-height: 1.35; }
+  .cover h1.title { font-size: 25pt; margin: 30mm 0 2mm; counter-increment: none; }
+  .cover h1.title::before { content: none; }
+  .cover .sub { font-size: 15pt; }
+  .cover .group { margin-top: 26mm; font-size: 11pt; }
+  .cover table { margin: 6mm auto 0; font-size: 10.5pt; width: auto; }
+  .cover .repo { margin-top: auto; font-size: 10.5pt; }
+  h1, h2, h3 { font-weight: bold; text-align: left; break-after: avoid; hyphens: none; }
+  h1 { font-size: 15pt; margin: 7mm 0 2.5mm; counter-increment: h1; counter-reset: h2; }
+  h1::before { content: counter(h1) "\2003"; }
+  h1.nonum { counter-increment: none; }
+  h1.nonum::before { content: none; }
+  h2 { font-size: 12pt; margin: 5mm 0 2mm; counter-increment: h2; counter-reset: h3; }
+  h2::before { content: counter(h1) "." counter(h2) "\2003"; }
+  h3 { font-size: 10.6pt; margin: 3.5mm 0 1mm; }
+  p { margin: 0 0 2.2mm; }
+  ul, ol { margin: 0 0 2.4mm; padding-left: 6mm; }
+  li { margin-bottom: 0.7mm; }
+  code, .mono { font-family: Consolas, "DejaVu Sans Mono", monospace; font-size: 8.6pt; }
+  pre { font-family: Consolas, monospace; font-size: 8.2pt; line-height: 1.3; background: var(--soft); border: 0.6pt solid #ccc;
+        padding: 2mm 3mm; margin: 1mm 0 3mm; white-space: pre-wrap; text-align: left; break-inside: avoid; }
+  table { border-collapse: collapse; width: 100%; font-size: 8.7pt; line-height: 1.3; margin: 1mm 0 1.5mm; text-align: left; hyphens: none; }
+  thead tr:first-child th { border-top: 1.2pt solid var(--rule); }
+  thead th { border-bottom: 0.7pt solid var(--rule); font-weight: bold; padding: 1.1mm 1.6mm; vertical-align: bottom; }
+  tbody td { padding: 0.8mm 1.6mm; vertical-align: top; }
+  tbody tr:last-child td { border-bottom: 1.2pt solid var(--rule); }
+  td.n, th.n { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .tbl { break-inside: avoid; margin: 3mm 0 3.5mm; }
+  .tbl .cap, figure figcaption { font-size: 9pt; line-height: 1.3; text-align: left; }
+  .tbl .cap { margin-bottom: 1mm; counter-increment: tab; }
+  .tbl .cap::before { content: "Table " counter(tab) ". "; font-weight: bold; }
+  figure { margin: 3.5mm 0 4mm; break-inside: avoid; text-align: center; }
+  figure img, figure svg { max-width: 100%; }
+  figure figcaption { margin-top: 1.5mm; counter-increment: fig; }
+  figure figcaption::before { content: "Figure " counter(fig) ". "; font-weight: bold; }
+  .toc { break-after: page; }
+  .toc ol { list-style: none; padding-left: 0; }
+  .toc > ol > li { font-weight: bold; margin-top: 2mm; }
+  .toc ol ol { padding-left: 7mm; font-weight: normal; }
+  .toc ol ol li { margin: 0.4mm 0; }
+  .note { background: var(--soft); border-left: 2.2pt solid var(--grey); padding: 2mm 3mm; margin: 2mm 0 3mm; font-size: 9.6pt; break-inside: avoid; }
+  .keep { break-inside: avoid; }
+  .pb { break-before: page; }
+</style>
+</head>
+<body>
+
+<!-- ================================================================== cover -->
+<section class="cover">
+  <div class="inst">Big Data<br>Grado en Ciencia e Ingeniería de Datos<br>Universidad de Las Palmas de Gran Canaria<br>Academic year 2026/2027</div>
+  <h1 class="title">Search Engine Project</h1>
+  <div class="sub">Stage 2: Building a Service-Oriented Architecture</div>
+  <div class="group">Group: <b>UAV-2</b></div>
+  <table>
+    <thead><tr><th>Full name</th><th>Student ID</th></tr></thead>
+    <tbody>
+      <tr><td>Hugo Amador Hidalgo</td><td>54173521B</td></tr>
+      <tr><td>Jesús Varela Vasquez</td><td>Y9772562Z</td></tr>
+      <tr><td>Amai Suárez Navarro</td><td>45780500N</td></tr>
+    </tbody>
+  </table>
+  <div class="repo">Repository: <span class="mono" style="font-size:10pt">https://github.com/UAV-2/Stage_2</span></div>
+</section>
+
+<!-- ================================================================== contents -->
+<section class="toc">
+  <h1 class="nonum">Contents</h1>
+  <ol>
+    <li>1&ensp;Introduction and objectives</li>
+    <li>2&ensp;System architecture
+      <ol><li>2.1&ensp;Services and deployment</li><li>2.2&ensp;Coordination mechanism</li>
+          <li>2.3&ensp;Processes, replicas and threads</li><li>2.4&ensp;Shared storage</li></ol></li>
+    <li>3&ensp;API design and contracts
+      <ol><li>3.1&ensp;Front-end API</li><li>3.2&ensp;Internal service APIs</li><li>3.3&ensp;Operational and administrative endpoints</li>
+          <li>3.4&ensp;Non-HTTP contracts</li><li>3.5&ensp;Specification and validation evidence</li></ol></li>
+    <li>4&ensp;Microservice implementation
+      <ol><li>4.1&ensp;Code structure</li><li>4.2&ensp;Ingestion Service</li><li>4.3&ensp;Indexing Service</li>
+          <li>4.4&ensp;Search Service</li><li>4.5&ensp;Control Module</li></ol></li>
+    <li>5&ensp;Design decisions
+      <ol><li>5.1&ensp;Coordination</li><li>5.2&ensp;Single-machine deployment</li><li>5.3&ensp;API design</li>
+          <li>5.4&ensp;Storage</li><li>5.5&ensp;Concurrency model, replication and threading</li></ol></li>
+    <li>6&ensp;Benchmarks and results
+      <ol><li>6.1&ensp;Experimental setup</li><li>6.2&ensp;E1: ingestion and indexing pipeline</li>
+          <li>6.3&ensp;E2: search under concurrent load</li><li>6.4&ensp;CPU and memory</li>
+          <li>6.5&ensp;JMH microbenchmarks</li><li>6.6&ensp;Bottlenecks and limitations</li></ol></li>
+    <li>7&ensp;Conclusions and future improvements
+      <ol><li>7.1&ensp;Conclusions</li><li>7.2&ensp;Evolution towards the Stage 3 cluster</li></ol></li>
+  </ol>
+</section>
+
+<!-- ================================================================== 1 -->
+<h1>Introduction and objectives</h1>
+<p>Stage 1 built the data layer of the search engine as a single program: a <i>datalake</i> with the raw Project
+Gutenberg books split into header and body, two <i>datamarts</i> (a metadata table and an inverted index) and
+append-only control files. Stage 2 turns that data layer into a <b>service-oriented architecture</b>: independent
+processes with REST APIs that cooperate through an explicit coordination mechanism. All processes, including
+the replicas of each service, run on one machine; the deployment on a cluster belongs to Stage 3.</p>
+<p>The objectives achieved in this stage are:</p>
+<ol>
+  <li><b>Three cooperating services</b> written in Java 17 with Javalin and Gson (Ingestion, Indexing and Search),
+      each built by Maven as an executable <code>.jar</code> and configured through environment variables.</li>
+  <li><b>Explicit coordination.</b> A <i>Control Module</i> orchestrates the workflow over HTTP (ingest → index →
+      publish), records progress persistently and retries failed work. The visibility of data between services is
+      governed by documented shared-storage contracts: a readiness marker for ingested books and an atomically
+      published index version for search.</li>
+  <li><b>A documented API.</b> The front-end search API is separated from the internal and operational endpoints. It is
+      specified in OpenAPI 3, listed in an endpoint inventory, and validated by runnable examples and an automatic
+      check script (54 of 54 checks pass).</li>
+  <li><b>Replicas and threads.</b> Every service can be started with several replicas and a configurable number of
+      HTTP threads; concurrent writers are coordinated with file locks and atomic renames.</li>
+  <li><b>Benchmarks.</b> JMH microbenchmarks of the core operations and integration benchmarks of the whole system with
+      real Gutenberg books, which identify the first bottleneck (publication of the index) and the changes needed for
+      Stage 3.</li>
+</ol>
+
+<!-- ================================================================== 2 -->
+<h1>System architecture</h1>
+<h2>Services and deployment</h2>
+<p>The system is a Maven multi-module project. Figure&nbsp;1 shows the processes, how they communicate and the
+shared storage. Every process runs on the same host and listens on <code>localhost</code>; the ports, data
+directory, replica counts and thread counts are configurable.</p>
+<ul>
+  <li><b>Ingestion Service</b> (port 7001). Downloads a book from Project Gutenberg (or reads it from a local folder in
+      the benchmarks), splits header and body and stores both files in the datalake.</li>
+  <li><b>Indexing Service</b> (port 7002). Reads an ingested book, extracts its metadata into SQLite and tokenizes the
+      body. The term frequencies stay pending in memory until a <i>publish</i> call writes them as a new immutable
+      index segment and publishes a new index version.</li>
+  <li><b>Search Service</b> (port 7003). Serves the front-end API: keyword search (AND semantics, tf-idf ranking) with
+      author, language and year filters and pagination, book details and filter values. It only reads published
+      index versions.</li>
+  <li><b>Control Module</b> (port 7000). The orchestrator: it decides which book is processed, calls the internal APIs,
+      records the progress and retries.</li>
+</ul>
+<p>Replica <i>r</i> of a service listens on its base port + 10·<i>r</i> (for example, the second search replica
+uses 7013). The script <code>scripts/start_all.sh</code> starts the whole deployment with the variables
+<code>INGESTION_REPLICAS</code>, <code>INDEXING_REPLICAS</code>, <code>SEARCH_REPLICAS</code> and
+<code>HTTP_THREADS</code>.</p>
+
+<figure>
+<svg viewBox="0 0 840 470" xmlns="http://www.w3.org/2000/svg" font-family="Palatino Linotype, Georgia, serif" font-size="11">
+  <defs>
+    <marker id="ab" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2a78d6"/></marker>
+    <marker id="ao" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#eb6834"/></marker>
+    <marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker>
+  </defs>
+  <!-- external -->
+  <rect x="650" y="4" width="150" height="34" rx="3" fill="#fff" stroke="#555"/>
+  <text x="725" y="25" text-anchor="middle">Project Gutenberg (HTTP)</text>
+  <rect x="8" y="318" width="122" height="62" rx="3" fill="#fff" stroke="#2a78d6" stroke-width="1.4"/>
+  <text x="69" y="343" text-anchor="middle" font-weight="bold">Front-end</text>
+  <text x="69" y="360" text-anchor="middle" font-size="10">browser or HTTP client</text>
+  <!-- host -->
+  <rect x="148" y="48" width="684" height="372" rx="6" fill="#fafaf8" stroke="#333" stroke-dasharray="6 4"/>
+  <text x="160" y="66" font-weight="bold">Single Stage 2 host (all processes on localhost)</text>
+  <!-- control -->
+  <rect x="164" y="84" width="170" height="64" rx="3" fill="#fff" stroke="#eb6834" stroke-width="1.4"/>
+  <text x="249" y="103" text-anchor="middle" font-weight="bold">Control Module :7000</text>
+  <text x="249" y="119" text-anchor="middle" font-size="9.5">1 process (orchestrator)</text>
+  <text x="249" y="133" text-anchor="middle" font-size="9.5">WORKERS=4 threads + publisher</text>
+  <path d="M190,190 v40 a40,8 0 0 0 80,0 v-40" fill="#fff" stroke="#555"/><ellipse cx="230" cy="190" rx="40" ry="8" fill="#fff" stroke="#555"/>
+  <text x="230" y="214" text-anchor="middle" font-size="9.5">control/</text>
+  <text x="230" y="227" text-anchor="middle" font-size="8.5">downloaded · indexed</text>
+  <text x="230" y="238" text-anchor="middle" font-size="8.5">failed</text>
+  <line x1="230" y1="148" x2="230" y2="180" stroke="#555" stroke-width="1.1" marker-end="url(#ag)"/>
+  <!-- services: three stacked groups -->
+  <g>
+    <rect x="424" y="84" width="160" height="72" rx="3" fill="#fff" stroke="#333"/>
+    <rect x="430" y="90" width="148" height="20" fill="#eef4fc" stroke="#999"/><text x="504" y="104" text-anchor="middle" font-size="9.5">ingestion-0 :7001</text>
+    <rect x="430" y="114" width="148" height="20" fill="#eef4fc" stroke="#999"/><text x="504" y="128" text-anchor="middle" font-size="9.5">ingestion-r :7001+10r</text>
+    <text x="504" y="149" text-anchor="middle" font-size="9">Ingestion · Jetty ≤ HTTP_THREADS</text>
+  </g>
+  <g>
+    <rect x="424" y="194" width="160" height="82" rx="3" fill="#fff" stroke="#333"/>
+    <rect x="430" y="200" width="148" height="20" fill="#eef4fc" stroke="#999"/><text x="504" y="214" text-anchor="middle" font-size="9.5">indexing-0 :7002</text>
+    <rect x="430" y="224" width="148" height="20" fill="#eef4fc" stroke="#999"/><text x="504" y="238" text-anchor="middle" font-size="9.5">indexing-r :7002+10r</text>
+    <text x="504" y="257" text-anchor="middle" font-size="9">Indexing · Jetty ≤ HTTP_THREADS</text>
+    <text x="504" y="269" text-anchor="middle" font-size="9">+ INDEX_THREADS, 1 compaction thr.</text>
+  </g>
+  <g>
+    <rect x="424" y="314" width="160" height="80" rx="3" fill="#fff" stroke="#333"/>
+    <rect x="430" y="320" width="148" height="20" fill="#eef4fc" stroke="#999"/><text x="504" y="334" text-anchor="middle" font-size="9.5">search-0 :7003</text>
+    <rect x="430" y="344" width="148" height="20" fill="#eef4fc" stroke="#999"/><text x="504" y="358" text-anchor="middle" font-size="9.5">search-r :7003+10r</text>
+    <text x="504" y="377" text-anchor="middle" font-size="9">Search · Jetty ≤ HTTP_THREADS</text>
+    <text x="504" y="389" text-anchor="middle" font-size="9">+ 1 index refresh thread</text>
+  </g>
+  <!-- storage -->
+  <path d="M670,90 v46 a72,9 0 0 0 144,0 v-46" fill="#fff" stroke="#555"/><ellipse cx="742" cy="90" rx="72" ry="9" fill="#fff" stroke="#555"/>
+  <text x="742" y="114" text-anchor="middle" font-size="9.5" font-weight="bold">datalake/</text>
+  <text x="742" y="127" text-anchor="middle" font-size="8.5">YYYYMMDD/HH/id.{header,body}.txt</text>
+  <text x="742" y="139" text-anchor="middle" font-size="8.5">_locations.tsv (readiness)</text>
+  <path d="M670,206 v46 a72,9 0 0 0 144,0 v-46" fill="#fff" stroke="#555"/><ellipse cx="742" cy="206" rx="72" ry="9" fill="#fff" stroke="#555"/>
+  <text x="742" y="230" text-anchor="middle" font-size="9.5" font-weight="bold">datamarts/index/</text>
+  <text x="742" y="243" text-anchor="middle" font-size="8.5">immutable segments/</text>
+  <text x="742" y="255" text-anchor="middle" font-size="8.5">manifest.json (published version)</text>
+  <path d="M670,326 v46 a72,9 0 0 0 144,0 v-46" fill="#fff" stroke="#555"/><ellipse cx="742" cy="326" rx="72" ry="9" fill="#fff" stroke="#555"/>
+  <text x="742" y="350" text-anchor="middle" font-size="9.5" font-weight="bold">datamarts/metadata.db</text>
+  <text x="742" y="363" text-anchor="middle" font-size="8.5">SQLite, WAL mode</text>
+  <!-- front-end API -->
+  <line x1="130" y1="349" x2="422" y2="349" stroke="#2a78d6" stroke-width="1.8" marker-end="url(#ab)"/>
+  <text x="276" y="340" text-anchor="middle" font-size="9.5" fill="#2a78d6">GET /search, /books/{id}, /search/filters</text>
+  <text x="276" y="364" text-anchor="middle" font-size="9" fill="#2a78d6">front-end API (HTTP)</text>
+  <!-- internal HTTP -->
+  <line x1="334" y1="112" x2="422" y2="112" stroke="#eb6834" stroke-width="1.8" marker-end="url(#ao)"/>
+  <text x="378" y="106" text-anchor="middle" font-size="8.5" fill="#eb6834">POST /ingest/{id}</text>
+  <text x="378" y="125" text-anchor="middle" font-size="8.5" fill="#eb6834">round-robin</text>
+  <polyline points="334,140 362,140 362,224 422,224" fill="none" stroke="#eb6834" stroke-width="1.8" marker-end="url(#ao)"/>
+  <text x="300" y="268" text-anchor="middle" font-size="9" fill="#eb6834">POST /index/update/{id}</text>
+  <text x="300" y="279" text-anchor="middle" font-size="9" fill="#eb6834">POST /index/publish</text>
+  <text x="300" y="290" text-anchor="middle" font-size="8.5" fill="#eb6834">affinity: id mod N</text>
+  <!-- storage access -->
+  <line x1="584" y1="106" x2="668" y2="106" stroke="#555" stroke-width="1.2" marker-end="url(#ag)"/>
+  <text x="626" y="99" text-anchor="middle" font-size="8.5">write</text>
+  <line x1="560" y1="84" x2="680" y2="38" stroke="#555" stroke-width="1.2" marker-end="url(#ag)"/>
+  <text x="604" y="56" text-anchor="middle" font-size="8.5">download</text>
+  <line x1="584" y1="208" x2="674" y2="140" stroke="#555" stroke-width="1.2" stroke-dasharray="4 3" marker-end="url(#ag)"/>
+  <text x="600" y="172" font-size="8.5">read</text>
+  <line x1="584" y1="232" x2="668" y2="232" stroke="#555" stroke-width="1.2" marker-end="url(#ag)"/>
+  <text x="626" y="226" text-anchor="middle" font-size="8.5">publish</text>
+  <line x1="584" y1="262" x2="674" y2="330" stroke="#555" stroke-width="1.2" marker-end="url(#ag)"/>
+  <text x="648" y="300" font-size="8.5">upsert</text>
+  <line x1="584" y1="320" x2="674" y2="258" stroke="#555" stroke-width="1.2" stroke-dasharray="4 3" marker-end="url(#ag)"/>
+  <text x="592" y="300" font-size="8.5">read</text>
+  <line x1="584" y1="352" x2="668" y2="352" stroke="#555" stroke-width="1.2" stroke-dasharray="4 3" marker-end="url(#ag)"/>
+  <text x="626" y="346" text-anchor="middle" font-size="8.5">read</text>
+  <!-- legend -->
+  <g font-size="9.5">
+    <line x1="160" y1="442" x2="196" y2="442" stroke="#2a78d6" stroke-width="1.8"/><text x="202" y="446">front-end API</text>
+    <line x1="300" y1="442" x2="336" y2="442" stroke="#eb6834" stroke-width="1.8"/><text x="342" y="446">internal HTTP (orchestration)</text>
+    <line x1="520" y1="442" x2="556" y2="442" stroke="#555" stroke-width="1.2"/><text x="562" y="446">shared storage (write)</text>
+    <line x1="694" y1="442" x2="730" y2="442" stroke="#555" stroke-width="1.2" stroke-dasharray="4 3"/><text x="736" y="446">read only</text>
+    <text x="160" y="463" fill="#555">Each blue box is one process (replica). Threads are listed inside each service; replica r listens on base port + 10·r.</text>
+  </g>
+</svg>
+<figcaption>Architecture. Every process runs on one host. The front-end only talks to the Search Service; the Control
+Module drives Ingestion and Indexing through internal HTTP calls; data between services flows through the shared storage,
+under the contracts of Section&nbsp;3.4.</figcaption>
+</figure>
+
+<h2>Coordination mechanism</h2>
+<p>We use <b>classical orchestration</b> combined with <b>shared-storage contracts</b>. The Control Module owns the
+workflow: it is the only component that decides which book is processed next, it calls the services, waits for their
+answer and records each completed step in its control files. The services do not call each other. They exchange
+data through the datalake and the datamarts, and the rules that make that exchange safe (when a book is ready, when an
+index version is visible) are part of the contracts in Section&nbsp;3.4. Table&nbsp;1 lists the steps for one book.</p>
+<div class="tbl">
+<div class="cap">Workflow for one book. <code>WORKERS</code> books are processed in parallel.</div>
+<table>
+<thead><tr><th>Step</th><th>Call (caller → provider)</th><th>Effect</th><th>Recorded by the Control Module</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Control → Ingestion: <code>POST /ingest/{id}</code> (round-robin among replicas, next replica on failure)</td><td>Header and body written (temporary file + atomic rename), then the id is appended to <code>_locations.tsv</code></td><td>200 → <code>downloaded_books.txt</code>; 404/422 → <code>failed_books.txt</code></td></tr>
+<tr><td>2</td><td>Control → Indexing replica <i>id</i> mod <i>N</i>: <code>POST /index/update/{id}</code></td><td>Metadata upserted in SQLite; term frequencies kept pending in memory. 409 if the book is not ready</td><td>Book waits for publication</td></tr>
+<tr><td>3</td><td>Control → same replica: <code>POST /index/publish</code>, every <code>PUBLISH_INTERVAL_MS</code> (2 s) or after <code>PUBLISH_BATCH</code> (25) pending books</td><td>New immutable segment, then <code>manifest.json</code> replaced atomically (new version)</td><td>200 → <code>indexed_books.txt</code> (book is searchable)</td></tr>
+<tr><td>4</td><td>Search replicas (no call)</td><td>Re-read the manifest every <code>REFRESH_MS</code> (500 ms) and switch to the new version</td><td>–</td></tr>
+</tbody></table></div>
+<p>A book becomes eligible for indexing only after ingestion has finished (step&nbsp;1 writes the readiness line last),
+search always reads one complete published version (step&nbsp;3 replaces the manifest atomically), and every step is
+idempotent, so repeating a request after a failure never creates duplicates.</p>
+
+<h2>Processes, replicas and threads</h2>
+<p>A service is a logical responsibility; its deployment has one or more <i>process replicas</i>, and every process
+uses several <i>threads</i>. Table&nbsp;2 shows both levels for each component, how work is distributed and how the
+shared state is protected.</p>
+<div class="tbl">
+<div class="cap">Replicas, threads and protection of shared state. Defaults in parentheses.</div>
+<table>
+<thead><tr><th>Component</th><th>Replicas</th><th>Threads per process</th><th>Distribution of work</th><th>Shared state and protection</th></tr></thead>
+<tbody>
+<tr><td>Control Module</td><td>1</td><td><code>WORKERS</code> (4) book workers, 1 publisher thread, Jetty pool of the admin API</td><td>Reads <code>BOOK_IDS</code> in order</td><td>Control files: <code>synchronized</code> methods, file synced on every append</td></tr>
+<tr><td>Ingestion</td><td><code>INGESTION_REPLICAS</code> (1)</td><td>Jetty pool, max <code>HTTP_THREADS</code> (32)</td><td>Round-robin from the Control Module; on failure, next replica</td><td>Datalake: atomic rename; per-book lock (64 lock stripes) and lock of <code>_locations.tsv</code>, both <code>FileLock</code> (processes) + <code>ReentrantLock</code> (threads)</td></tr>
+<tr><td>Indexing</td><td><code>INDEXING_REPLICAS</code> (1)</td><td>Jetty pool (<code>HTTP_THREADS</code>); <code>INDEX_THREADS</code> (CPU count) for rebuilds; 1 compaction thread</td><td>Affinity <i>id</i> mod <i>N</i>: a book always goes to the same replica</td><td>Pending buffer (<code>ConcurrentHashMap</code>); in-process publication lock; <code>FileLock</code> on the manifest between replicas; SQLite in WAL mode with 10 s <code>busy_timeout</code></td></tr>
+<tr><td>Search</td><td><code>SEARCH_REPLICAS</code> (1)</td><td>Jetty pool (<code>HTTP_THREADS</code>); 1 refresh thread</td><td>The client or a load balancer spreads queries</td><td>Read only: immutable snapshot per query (<code>AtomicReference</code>), synchronized LRU cache of posting lists (<code>CACHE_ENTRIES</code>, 50 000), one SQLite connection per thread</td></tr>
+</tbody></table></div>
+<p><b>HTTP threads.</b> Javalin 6 runs on Jetty. <code>HTTP_THREADS</code> sets the maximum size of Jetty's
+<code>QueuedThreadPool</code> (minimum <code>min(4, HTTP_THREADS)</code>); we always set it explicitly, so the
+framework default is not used. Virtual threads are disabled, which is the Javalin 6 default. When all threads are
+busy, Jetty queues the requests instead of rejecting them, and long operations (index rebuild) are administrative
+only, so request threads cannot be exhausted by the normal workflow. An in-process lock only protects the threads of
+that process: every lock that must also coordinate replicas is a file lock.</p>
+
+<h2>Shared storage</h2>
+<p>All data lives under <code>DATA_DIR</code> (default <code>data/</code>):</p>
+<ul>
+  <li><code>datalake/YYYYMMDD/HH/&lt;id&gt;.header.txt</code> and <code>.body.txt</code>: the time-based ingestion
+      hierarchy of the assignment, implemented in Stage 1. <code>datalake/_locations.tsv</code> maps every complete book to its folder, so a book is located in one
+      read instead of probing hour folders (the weakness of this layout measured in Stage 1), and the same file is the
+      readiness marker.</li>
+  <li><code>datamarts/index/segments/&lt;segment&gt;/&lt;LETTER&gt;/&lt;term&gt;.txt</code>: immutable index segments
+      that reuse the hierarchical layout of Stage 1 (lines <code>book_id \t tf</code>), and
+      <code>datamarts/index/manifest.json</code> with the published version, its segments, its books and the retired
+      segments.</li>
+  <li><code>datamarts/metadata.db</code>: SQLite table <code>books</code> (title, author, language, year, release date,
+      body path), with indexes on author, language and year.</li>
+  <li><code>control/</code>: <code>downloaded_books.txt</code>, <code>indexed_books.txt</code> and
+      <code>failed_books.txt</code>, written only by the Control Module.</li>
+</ul>
+
+<!-- ================================================================== 3 -->
+<h1>API design and contracts</h1>
+<p>The full specification is <code>api/openapi.yaml</code> (OpenAPI 3, version 1.0.0), with every parameter,
+schema, status code and example. <code>api/ENDPOINTS.md</code> contains the inventory summarised here. All errors use the
+same JSON body <code>{"error", "message", "status"}</code>, including unknown routes (404 <code>NOT_FOUND</code>).</p>
+
+<h2>Front-end API</h2>
+<p><b>Provider:</b> Search Service. <b>Consumer:</b> the front-end, or any HTTP client that exercises the same contract.
+The front-end use cases are: (1) search books by keywords, optionally filtered by author, language and year, page by
+page; (2) open the details of a result; (3) fill the filter controls with the available values. All three are
+read-only and synchronous (Table&nbsp;3).</p>
+<div class="tbl">
+<div class="cap">Front-end endpoints.</div>
+<table>
+<thead><tr><th>Method</th><th>Route</th><th>Purpose</th><th>Status codes</th></tr></thead>
+<tbody>
+<tr><td>GET</td><td><code>/search?q&amp;author&amp;language&amp;year&amp;offset&amp;limit</code></td><td>AND keyword search with combinable filters and pagination</td><td>200, 400</td></tr>
+<tr><td>GET</td><td><code>/books/{book_id}</code></td><td>Metadata of a searchable book</td><td>200, 400, 404</td></tr>
+<tr><td>GET</td><td><code>/search/filters</code></td><td>Languages (with book counts), year range and top authors</td><td>200</td></tr>
+</tbody></table></div>
+<p><b>Semantics of <code>/search</code>.</b></p>
+<ul>
+  <li><i>Parameters.</i> <code>q</code> is required (at most 500 characters). <code>limit</code> defaults to 20 (1–100)
+      and <code>offset</code> to 0 (≥&nbsp;0).</li>
+  <li><i>Query.</i> <code>q</code> is tokenized exactly like the books and its terms are combined with AND. A query made only
+      of stopwords returns 200 with <code>total: 0</code>.</li>
+  <li><i>Filters.</i> <code>author</code> is a case-insensitive substring; <code>language</code> is an exact code
+      (<code>en</code>, <code>fr</code>…), case-insensitive; <code>year</code> is an exact year (original publication if
+      the header gives it, otherwise the Gutenberg release year). Filters can be combined.</li>
+  <li><i>Ordering.</i> tf-idf score, highest first, with score = Σ (1 + ln tf)·ln(1 + N/df) over the query terms; ties by
+      ascending <code>book_id</code>.</li>
+  <li><i>Pagination.</i> <code>total</code> counts every match and <code>results</code> contains only the requested
+      page. An offset beyond <code>total</code> returns 200 with an empty list.</li>
+  <li><i>Errors (400).</i> <code>MISSING_QUERY</code>, <code>QUERY_TOO_LONG</code>, <code>INVALID_AUTHOR</code>,
+      <code>INVALID_LANGUAGE</code>, <code>INVALID_YEAR</code>, <code>INVALID_OFFSET</code>, <code>INVALID_LIMIT</code>.</li>
+  <li><i>Consistency.</i> Each response carries the <code>index_version</code> it was computed from.</li>
+  <li><i>CORS.</i> Allowed origins are set with <code>CORS_ORIGINS</code> (default <code>*</code>), so a browser front-end
+      served from another origin can call the Search Service directly.</li>
+</ul>
+<pre>GET /search?q=whale&amp;language=en&amp;offset=0&amp;limit=20          (shape of the answer; values abbreviated)
+200 OK
+{"query": "whale", "terms": ["whale"], "filters": {"language": "en"},
+ "total": &lt;all matches&gt;, "offset": 0, "limit": 20, "index_version": &lt;published version&gt;,
+ "results": [{"book_id": ..., "title": ..., "author": ..., "language": "en", "year": ..., "score": ...}, ...]}</pre>
+
+<h2>Internal service APIs</h2>
+<p><b>Consumer:</b> Control Module. All internal calls are <b>synchronous</b>: a 200 means the work has been completed,
+not only accepted (Table&nbsp;4).</p>
+<div class="tbl">
+<div class="cap">Internal endpoints. Step refers to Table&nbsp;1.</div>
+<table>
+<thead><tr><th>Provider</th><th>Method and route</th><th>Purpose</th><th>Step</th><th>Idempotency and retries</th></tr></thead>
+<tbody>
+<tr><td>Ingestion</td><td><code>POST /ingest/{book_id}</code></td><td>Download, split and store the book</td><td>1</td><td>Idempotent (<code>already_present</code>). Retry on network errors and 502; never on 404 (not in Gutenberg) or 422 (no START/END markers)</td></tr>
+<tr><td>Ingestion</td><td><code>GET /ingest/status/{book_id}</code></td><td>Is the book available?</td><td>diag.</td><td>Read only</td></tr>
+<tr><td>Ingestion</td><td><code>GET /ingest/list</code></td><td>Books in the datalake</td><td>diag.</td><td>Read only</td></tr>
+<tr><td>Indexing</td><td><code>POST /index/update/{book_id}</code></td><td>Store metadata and keep the terms pending</td><td>2</td><td>Idempotent (<code>already_indexed</code>). 409 <code>BOOK_NOT_INGESTED</code> if not ready</td></tr>
+<tr><td>Indexing</td><td><code>POST /index/publish</code></td><td>Make the pending books searchable (new version)</td><td>3</td><td>Idempotent: already published books are returned as <code>skipped</code>; without pending books nothing changes</td></tr>
+</tbody></table></div>
+<p><b>Timeouts and failures for the caller.</b> Every internal call has a timeout of <code>REQUEST_TIMEOUT_MS</code>
+(120&nbsp;s). Network errors, timeouts and 5xx answers are retried up to <code>MAX_RETRIES</code> (3) times with
+exponential backoff from <code>RETRY_BACKOFF_MS</code> (500&nbsp;ms); ingestion retries on the next replica. If an
+indexing replica fails to publish several times in a row, its pending books are sent to another replica. Whatever
+is not completed stays visible in the control files and is resumed by the next run.</p>
+
+<h2>Operational and administrative endpoints</h2>
+<div class="tbl">
+<div class="cap">Operational and administrative endpoints (not used by the front-end).</div>
+<table>
+<thead><tr><th>Provider</th><th>Method and route</th><th>Consumer</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td>All</td><td><code>GET /status</code></td><td>Control Module (start-up wait), benchmark scripts, operators</td><td>Health, pid, replica id, threads, heap, process CPU and service statistics</td></tr>
+<tr><td>Indexing</td><td><code>GET /index/status</code></td><td>Operators, benchmarks</td><td>Books indexed, version, segments, pending books, size</td></tr>
+<tr><td>Indexing</td><td><code>POST /index/rebuild</code></td><td>Administration</td><td>Rebuild index and metadata from the datalake (synchronous)</td></tr>
+<tr><td>Indexing</td><td><code>POST /index/compact</code></td><td>Administration</td><td>Merge segments (also automatic above <code>COMPACT_THRESHOLD</code> = 16)</td></tr>
+<tr><td>Control</td><td><code>POST /control/run?books=N</code></td><td>Administration</td><td>Start a run; asynchronous: 202, or 409 if a run is in progress</td></tr>
+<tr><td>Control</td><td><code>GET /control/status</code></td><td>Administration</td><td>Phase and metrics of the last run (how the caller observes completion)</td></tr>
+</tbody></table></div>
+
+<h2>Non-HTTP contracts</h2>
+<p>Part of the coordination happens through shared files on the single host. Each contract has one owner, defined
+readers and an explicit synchronization rule.</p>
+<ul>
+  <li><b>Datalake readiness.</b> Owner: Ingestion. Reader: Indexing. Body and header are written to temporary files and
+      renamed atomically; only then is the line <code>book_id \t YYYYMMDD/HH</code> appended to
+      <code>_locations.tsv</code>. A book is available <i>if and only if</i> its line exists.</li>
+  <li><b>Published index.</b> Owners: all Indexing replicas. Reader: Search. A segment is written to
+      <code>&lt;segment&gt;.tmp</code> and renamed (no lock needed: names are unique). Then, holding
+      <code>.manifest.lock</code>, the replica reads the manifest, adds the segment and its books, and replaces the
+      manifest atomically. Search re-reads it every <code>REFRESH_MS</code> and each query uses one version. Segments
+      replaced by compaction or rebuild are deleted after <code>RETIRED_GRACE_MS</code> (60&nbsp;s), far longer than any
+      query. A book already listed in the manifest is never published again.</li>
+  <li><b>Metadata.</b> Owner: Indexing. Reader: Search. SQLite in WAL mode (one writer, many readers, also across
+      processes), <code>busy_timeout</code> of 10&nbsp;s and upsert by <code>book_id</code>. Metadata is written
+      <i>before</i> the terms are published, and search always starts from the published index, so it never returns a
+      book without metadata.</li>
+  <li><b>Workflow state.</b> Owner: Control Module (single process). A line is appended to a control file only
+      <i>after</i> the service has confirmed the operation.</li>
+</ul>
+<div class="tbl">
+<div class="cap">What happens if the Control Module stops between an operation and its record.</div>
+<table>
+<thead><tr><th>Interruption</th><th>On restart</th></tr></thead>
+<tbody>
+<tr><td>After ingestion, before recording it</td><td>Ingestion is repeated and answers <code>already_present: true</code></td></tr>
+<tr><td>After the update, before publication</td><td>If the replica is alive, the next publish includes the book; if it restarted, the book is in <i>downloaded − indexed</i> and is indexed again</td></tr>
+<tr><td>After publication, before recording it</td><td>The update answers <code>already_indexed: true</code> and the book is recorded</td></tr>
+</tbody></table></div>
+
+<h2>Specification and validation evidence</h2>
+<ul>
+  <li><code>api/openapi.yaml</code>: OpenAPI 3 specification of every implemented endpoint; <code>api/ENDPOINTS.md</code>:
+      inventory separated into front-end, internal and operational endpoints, plus the non-HTTP contracts.</li>
+  <li><code>api/examples.http</code>: runnable requests (IntelliJ or VS Code REST client) with the expected answers.</li>
+  <li><code>scripts/check_api.py</code>: automatic checks against the running services. They cover ingestion (new and
+      repeated book, status, list, invalid id), indexing (update, publish, repeated update, 409 for a book not
+      ingested, status), book details (found, 404, 400), keyword search, each filter alone and combined, empty results,
+      every 400 error code, pagination (<code>limit=1</code>, <code>offset=total</code>), filter values and unknown
+      routes. Result on the benchmark machine, with real books: <b>54/54 checks passed</b>.</li>
+  <li>36 JUnit tests (<code>mvn test</code>), including API tests that start each service in-process and call it
+      over HTTP, and concurrency tests of the datalake, the index and SQLite with several threads and instances.</li>
+</ul>
+
+<!-- ================================================================== 4 -->
+<h1>Microservice implementation</h1>
+<h2>Code structure</h2>
+<p>Each service is a Maven module that produces a self-contained executable jar (Maven Shade). The shared code is
+in the <code>common</code> library, so every service applies exactly the same processing rules.</p>
+<div class="tbl">
+<div class="cap">Maven modules. Libraries: Javalin 6.4.0, Gson 2.12.1, sqlite-jdbc 3.49.1, SLF4J 2.0.16, JUnit 5.11, JMH 1.37.</div>
+<table>
+<thead><tr><th>Module</th><th>Main classes</th><th>Role</th></tr></thead>
+<tbody>
+<tr><td><code>common</code></td><td><code>GutenbergText</code>, <code>HeaderParser</code>, <code>Tokenizer</code>, <code>Datalake</code>, <code>FileLocks</code>, <code>AtomicFiles</code>, <code>MetadataStore</code>, <code>InvertedIndex</code>, <code>Segment</code>, <code>Manifest</code>, <code>IndexReader</code>, <code>ServiceServer</code>, <code>ServiceClient</code>, <code>Config</code></td><td>Text processing, datalake, metadata, segmented index, common Javalin server (JSON, uniform errors, CORS, thread pool, <code>/status</code>) and HTTP client</td></tr>
+<tr><td><code>ingestion-service</code></td><td><code>IngestionApp</code>, <code>IngestionService</code>, <code>BookSource</code></td><td>Routes <code>/ingest/*</code>; Gutenberg or local source</td></tr>
+<tr><td><code>indexing-service</code></td><td><code>IndexingApp</code>, <code>IndexingService</code></td><td>Routes <code>/index/*</code>; pending buffer, publication, rebuild, compaction</td></tr>
+<tr><td><code>search-service</code></td><td><code>SearchApp</code>, <code>SearchEngine</code>, <code>SearchQuery</code></td><td>Front-end API, ranking, filters and pagination</td></tr>
+<tr><td><code>control-module</code></td><td><code>ControlApp</code>, <code>Orchestrator</code>, <code>ControlState</code>, <code>RunMetrics</code></td><td>Orchestration, control files, retries, metrics, admin API</td></tr>
+<tr><td><code>benchmarks</code></td><td><code>TextProcessingBenchmark</code>, <code>IndexPublishBenchmark</code>, <code>SearchBenchmark</code> (in <code>src/test/java</code>)</td><td>JMH microbenchmarks, excluded from the service jars</td></tr>
+</tbody></table></div>
+
+<h2>Ingestion Service</h2>
+<p><code>POST /ingest/{id}</code> first takes the per-book lock and checks <code>_locations.tsv</code>; if the book is
+already there it answers <code>already_present</code> without downloading it again. Otherwise it fetches the text
+(<code>BookSource</code>: Gutenberg over HTTP with a politeness delay of <code>SOURCE_DELAY_MS</code> = 1&nbsp;s between
+requests of the same process, or a local folder), locates the START/END markers, writes body and header atomically
+and finally appends the readiness line. Missing books return 404, files without markers 422 and download errors 502.</p>
+
+<h2>Indexing Service</h2>
+<p><code>POST /index/update/{id}</code> resolves the book through <code>_locations.tsv</code> (409 if it is not ready),
+parses the header (title, author, language, year and release date), upserts the metadata row and tokenizes the body
+into term frequencies, which are kept in a pending buffer. <code>POST /index/publish</code> takes the in-process
+publication lock, writes all pending books as one new segment and updates the manifest under the file lock; it answers
+with the new version and the lists of <code>published</code> and <code>skipped</code> books. When the number of segments
+exceeds <code>COMPACT_THRESHOLD</code>, a background thread merges them into one segment and retires the old ones.
+<code>POST /index/rebuild</code> rebuilds everything from the datalake with <code>INDEX_THREADS</code> threads.</p>
+
+<h2>Search Service</h2>
+<p>A refresh thread loads the manifest every 500&nbsp;ms and publishes an immutable snapshot through an
+<code>AtomicReference</code>; each query takes the current snapshot once, so it never mixes two versions. For each
+query term the engine reads the posting lists of all segments of the snapshot (through an LRU cache, valid because
+segments are immutable), intersects them, computes the tf-idf score, applies the filters with the metadata in SQLite and
+returns the requested page. Every request thread has its own SQLite connection, because JDBC connections are not
+thread-safe.</p>
+
+<h2>Control Module</h2>
+<p>The orchestrator runs <code>WORKERS</code> books in parallel and a publisher thread that calls
+<code>/index/publish</code> on each indexing replica every 2&nbsp;s or when 25 books are pending there. Before starting,
+it waits for the <code>/status</code> of every service and loads its control files, so a new run skips what is already
+done and resumes the rest. It also measures the duration of every call and the time each book waits until it is
+searchable (Section&nbsp;6.2). The admin API (<code>/control/run</code>, <code>/control/status</code>) starts runs
+asynchronously and reports their progress.</p>
+
+<!-- ================================================================== 5 -->
+<h1>Design decisions</h1>
+<h2>Coordination</h2>
+<ul>
+  <li><b>Why orchestration.</b> The workflow is a strict sequence per book (ingest, then index, then publish), and the
+      retry policy, the record of progress and the metrics are easier to get right in one place. It needs no extra
+      process such as a broker, and every step can be observed and repeated by hand with the same HTTP calls.</li>
+  <li><b>Why an explicit publish step.</b> Publishing one book at a time would create one segment per book. Separating
+      <i>update</i> (cheap, per book) from <i>publish</i> (expensive, per batch) lets the Control Module choose the batch
+      size, which Section&nbsp;6 shows is the dominant cost.</li>
+  <li><b>Why shared-storage contracts.</b> On one host the services already share the file system; documented readiness
+      markers and atomic publication give the guarantees the assignment requires (no indexing before ingestion, consistent
+      published state, no duplicates) without sending book contents over HTTP.</li>
+  <li><b>Cost.</b> The Control Module is a single point of failure. It keeps no state in memory that cannot be rebuilt
+      from its control files, so a restart resumes the work; in Stage 3 it should be replaced by a persistent queue or by
+      leader election.</li>
+</ul>
+<h2>Single-machine deployment</h2>
+<p>Every setting is an environment variable: ports (base + 10·<i>r</i> for replicas), <code>DATA_DIR</code>, source,
+replica counts, thread counts, batch sizes, timeouts and retries. <code>start_all.sh</code> checks that the ports are
+free, starts every replica, waits for its <code>/status</code> and records its pid; <code>stop_all.sh</code> stops them
+all. The same scripts are used by the benchmarks, so every experiment can be reproduced with one command.</p>
+<h2>API design</h2>
+<p>Search is one endpoint with optional filters instead of one route per filter, so the front-end builds a single URL.
+Errors share one JSON format with stable codes, so a client can react without parsing text. Internal calls are
+synchronous because each one finishes in milliseconds (except <i>publish</i>), which makes completion trivial to observe;
+the only long-running operation started through the API (<code>/control/run</code>) is asynchronous and has a status
+endpoint. Responses expose <code>index_version</code> so that a client can detect a change of version between pages.</p>
+<h2>Storage</h2>
+<ul>
+  <li><b>Datalake.</b> The assignment asks to preserve the ingestion hierarchy (<code>YYYYMMDD/HH</code>). We keep it and add the
+      <code>_locations.tsv</code> catalogue, which removes the slow lookup measured in Stage 1 and doubles as the readiness marker.</li>
+  <li><b>Index.</b> Immutable segments plus a manifest give snapshot isolation without readers ever taking a lock: writers
+      only add files, and the manifest swap is the single atomic commit point. Segments reuse the Stage 1 hierarchical
+      layout (one file per term), which was the fastest layout for queries. Section&nbsp;6 shows that its weak point,
+      creating many small files, is now the main bottleneck.</li>
+  <li><b>Metadata.</b> SQLite was the fastest backend in Stage 1 and needs no server. WAL mode lets the search replicas
+      read while an indexer writes, and <code>busy_timeout</code> plus retries when the database is opened handle several
+      replicas starting at the same time.</li>
+</ul>
+<h2>Concurrency model, replication and threading</h2>
+<ul>
+  <li><b>Duplicate work.</b> Ingestion takes a per-book lock and checks the catalogue; indexing affinity sends a book
+      always to the same replica; the manifest records published books, so a repeated publish skips them.</li>
+  <li><b>Conflicting writes.</b> Segment names are unique, so only the manifest needs mutual exclusion, and it is held only
+      for a read-modify-write of one small file. SQLite serialises writers by itself.</li>
+  <li><b>Thread exhaustion.</b> Bounded Jetty pools with a queue; only administrative calls are long.</li>
+  <li><b>Where replication or threads help.</b> Search is read-only and its queries are independent, so both threads and
+      replicas can add throughput until the CPU is full (Section&nbsp;6.5 measures 6.3× with 8 threads). Ingestion from
+      Gutenberg is limited by the politeness delay of each process, so ingestion replicas would increase the download rate.</li>
+  <li><b>Where they add contention.</b> All indexing replicas publish to the same manifest and the same disk; more
+      replicas also produce more, smaller segments in which frequent terms are repeated. Section&nbsp;6.2 measures this.</li>
+</ul>
+
+<!-- ================================================================== 6 -->
+<h1>Benchmarks and results</h1>
+<h2>Experimental setup</h2>
+<div class="tbl">
+<div class="cap">Host and protocol. All processes, including the load generator, run on this machine.</div>
+<table>
+<tbody>
+<tr><td><b>CPU</b></td><td>Intel Core i7-14700K: 20 cores (8 performance + 12 efficiency), 28 logical CPUs</td></tr>
+<tr><td><b>Memory / storage</b></td><td>32 GB RAM; NVMe SSD (WD PC SN560, 1 TB), NTFS</td></tr>
+<tr><td><b>Software</b></td><td>Windows 11 Home, Git Bash; Java 21.0.7 (code compiled for Java 17); JMH 1.37; Python 3 for the load generator and the monitor</td></tr>
+<tr><td><b>Data</b></td><td>Real Project Gutenberg books downloaded once into a local cache (<code>scripts/fetch_books.py</code>). The integration runs use 100 of them through <code>SOURCE=local:…</code>, so network time is excluded</td></tr>
+<tr><td><b>E1 pipeline</b></td><td>Full run of 100 books (ingest + index + publish) with fresh data; 5 configurations of <code>WORKERS</code> and <code>INDEXING_REPLICAS</code>, 3 repetitions each</td></tr>
+<tr><td><b>E2 search</b></td><td>Index of 100 books; closed-loop clients (each one sends the next query as soon as it gets the answer) at 1–32 concurrent clients; 15 s per point after a warm-up, 3 repetitions; 11 query templates with filters and pagination; 4 configurations of <code>SEARCH_REPLICAS</code> and <code>HTTP_THREADS</code></td></tr>
+<tr><td><b>Resources</b></td><td>CPU and resident memory of every process and of the host, sampled every 0.5 s (<code>scripts/monitor.py</code>, psutil)</td></tr>
+<tr><td><b>JMH</b></td><td>5 warm-up + 10 measured iterations, 2 forks; heap fixed at 2 GB in the main suite; threading experiment with <code>-t 1, 2, 4, 8</code></td></tr>
+</tbody></table></div>
+<p>Client concurrency (E2), internal worker threads (<code>WORKERS</code>, <code>HTTP_THREADS</code>, JMH <code>-t</code>)
+and process replicas are reported separately. All numbers are means ± standard deviation of the repetitions unless
+stated otherwise. The whole experiment is reproduced with <code>scripts/integration_bench.sh</code>,
+<code>scripts/run_jmh.sh all</code>, <code>scripts/run_jmh.sh threads</code> and <code>benchmarks/plot_results.py</code>.</p>
+
+<h2>E1: ingestion and indexing pipeline</h2>
+<div class="tbl">
+<div class="cap">Pipeline with 100 books. Call latencies are mean / p95 in ms; publish wait is the time from a book's update to the confirmation that it is searchable (mean / p95, in s).</div>
+<table>
+<thead><tr><th class="n">Workers</th><th class="n">Indexing replicas</th><th class="n">Total time (s)</th><th class="n">Books/s</th><th class="n">Ingest call (ms)</th><th class="n">Update call (ms)</th><th class="n">Publish call (s)</th><th class="n">Publish wait (s)</th><th class="n">Retries / failed</th></tr></thead>
+<tbody>
+<tr><td class="n">1</td><td class="n">1</td><td class="n">58.8 ± 8.9</td><td class="n">1.73 ± 0.24</td><td class="n">11.1 / 27</td><td class="n">9.4 / 25</td><td class="n">16.1</td><td class="n">22.3 / 27.8</td><td class="n">0 / 0</td></tr>
+<tr><td class="n">4</td><td class="n">1</td><td class="n">44.3 ± 1.2</td><td class="n">2.26 ± 0.06</td><td class="n">11.2 / 27</td><td class="n">11.7 / 36</td><td class="n">21.9</td><td class="n">37.7 / 43.8</td><td class="n">0 / 0</td></tr>
+<tr><td class="n">8</td><td class="n">1</td><td class="n">42.3 ± 0.8</td><td class="n"><b>2.36 ± 0.05</b></td><td class="n">15.0 / 35</td><td class="n">18.3 / 69</td><td class="n">21.0</td><td class="n">35.2 / 42.0</td><td class="n">0 / 0</td></tr>
+<tr><td class="n">8</td><td class="n">2</td><td class="n">51.4 ± 3.0</td><td class="n">1.95 ± 0.11</td><td class="n">16.0 / 39</td><td class="n">18.3 / 67</td><td class="n">18.8</td><td class="n">30.9 / 50.9</td><td class="n">0 / 0</td></tr>
+<tr><td class="n">8</td><td class="n">4</td><td class="n">52.2 ± 19.8</td><td class="n">2.10 ± 0.72</td><td class="n">66.3 / 168</td><td class="n">25.5 / 88</td><td class="n">24.3</td><td class="n">37.1 / 47.0</td><td class="n">0 / 0</td></tr>
+</tbody></table></div>
+<figure><img src="figuras/fig_pipeline.png" alt="Pipeline throughput and latency breakdown">
+<figcaption>E1 pipeline. (a) Books published per second (mean ± sd of 3 runs). (b) Mean duration of each internal call
+and mean time a book waits until it is searchable, on a logarithmic scale.</figcaption></figure>
+<ul>
+  <li><b>Correctness.</b> All 15 runs published the 100 books with no retry and no failure.</li>
+  <li><b>Workers.</b> Going from 1 to 4 workers improves throughput by 31&nbsp;% (1.73 → 2.26 books/s); from 4 to 8 only
+      by 4&nbsp;%. Ingestion and update calls take 10–20&nbsp;ms, so more parallel workers stop helping as soon as books
+      queue for publication.</li>
+  <li><b>The bottleneck is publication.</b> A publish call takes 16–24&nbsp;s on average, three orders of magnitude more
+      than the other calls (Figure&nbsp;2b), and a book waits 22–38&nbsp;s on average until it is searchable. The total time
+      of a run (42–59&nbsp;s) is essentially a few consecutive publications. This is the coordination cost of our design:
+      the orchestrator itself adds milliseconds, but the step that makes data consistently visible dominates.</li>
+  <li><b>Why publication is slow.</b> Each segment stores one file per term. The 100-book index left by the last run
+      has 7 segments and <b>257&nbsp;208 term files</b> (between 9&nbsp;557 and 74&nbsp;270 per segment). Creating tens of
+      thousands of small files is slow on NTFS; the indexing process averages about one core while the whole host stays at
+      11–24&nbsp;% CPU (Section&nbsp;6.4), so the limit is file-system work, not computation. JMH confirms it in isolation
+      (Section&nbsp;6.5).</li>
+  <li><b>Indexing replicas do not help on one host</b> (1.95 and 2.10 books/s with 2 and 4 replicas against 2.36 with
+      one). Every replica writes its own segments to the same disk and takes the same manifest lock, and splitting the
+      books among replicas repeats the frequent terms in more segments, so more files are created in total. With 4
+      replicas the variance also grows a lot (36–74&nbsp;s), with ingestion latencies up to 395&nbsp;ms (p95) in the slowest run:
+      contention for the disk.</li>
+</ul>
+
+<h2>E2: search under concurrent load</h2>
+<div class="tbl">
+<div class="cap">GET /search with an index of 100 books (mean ± sd of 3 runs; 72 measurement points, 0 errors in all of them).</div>
+<table>
+<thead><tr><th>Configuration</th><th class="n">1 client (q/s)</th><th class="n">4 clients</th><th class="n">8 clients</th><th class="n">32 clients</th><th class="n">p95 @1 (ms)</th><th class="n">p95 @8</th><th class="n">p95 @32</th></tr></thead>
+<tbody>
+<tr><td>1 replica, 8 HTTP threads</td><td class="n">3 476 ± 59</td><td class="n">10 960 ± 211</td><td class="n">11 262 ± 473</td><td class="n">10 930 ± 313</td><td class="n">0.44</td><td class="n">1.29</td><td class="n">6.45</td></tr>
+<tr><td>1 replica, 32 HTTP threads</td><td class="n">3 392 ± 143</td><td class="n">12 162 ± 78</td><td class="n">12 248 ± 270</td><td class="n">11 868 ± 151</td><td class="n">0.48</td><td class="n">1.18</td><td class="n">5.77</td></tr>
+<tr><td>2 replicas, 32 HTTP threads</td><td class="n">3 968 ± 72</td><td class="n">11 798 ± 372</td><td class="n">12 004 ± 247</td><td class="n">10 789 ± 256</td><td class="n">0.39</td><td class="n">1.20</td><td class="n">6.58</td></tr>
+<tr><td>4 replicas, 32 HTTP threads</td><td class="n">3 899 ± 193</td><td class="n">11 229 ± 272</td><td class="n">11 748 ± 303</td><td class="n">11 567 ± 141</td><td class="n">0.40</td><td class="n">1.22</td><td class="n">5.98</td></tr>
+</tbody></table></div>
+<figure><img src="figuras/fig_search.png" alt="Search throughput and p95 latency">
+<figcaption>E2 search. (a) Throughput and (b) 95th-percentile latency against the number of concurrent clients, for each
+replica and thread configuration (mean ± sd of 3 runs).</figcaption></figure>
+<ul>
+  <li><b>Saturation.</b> Throughput grows almost linearly up to 4 clients and then stays at 11&nbsp;000–12&nbsp;000 queries/s.
+      Beyond that point more clients only add queueing: the p95 latency goes from 0.4–0.5&nbsp;ms (1 client) to
+      1.2–1.3&nbsp;ms (8) and 5.8–6.6&nbsp;ms (32). The mean latency follows Little's law, <i>R</i> = <i>N</i>/<i>X</i>: with 32 clients
+      and 11&nbsp;868&nbsp;q/s it predicts 2.70&nbsp;ms, and 2.69&nbsp;ms was measured.</li>
+  <li><b>Replicas and HTTP threads have almost no effect</b> (differences within about 10&nbsp;%). The reason is that the
+      search processes are not the limit: all search replicas together use about 2.4 cores in every configuration and the
+      host never exceeds about 5 of its 28 logical CPUs (Section&nbsp;6.4). The limit is the load generator, a Python process
+      on the same machine. This is a limitation of our evidence, not a property of the service: measuring the benefit of
+      search replicas requires a faster client or a client on another machine.</li>
+  <li><b>Errors.</b> None in the 72 points, including the configurations with 4 replicas and 32 clients.</li>
+</ul>
+
+<h2>CPU and memory</h2>
+<figure><img src="figuras/fig_resources.png" alt="CPU and memory per service">
+<figcaption>Resource use per configuration. (a) Mean CPU of each service, summed over its replicas, in cores; the black
+mark is the whole host (28 logical CPUs). (b) Peak resident memory of one process of each service.</figcaption></figure>
+<ul>
+  <li><b>E1.</b> Indexing is the only busy service: about one core on average with one replica (peaks of 4–5 cores while
+      several books are tokenized at once) and 1.5–2.3 cores with 2–4 replicas, without any gain in throughput. Ingestion
+      from a local folder uses almost no CPU. The host stays between 3 and 7 cores.</li>
+  <li><b>E2.</b> The search processes use about 2.4 cores in total whatever the number of replicas, which means the same
+      amount of work is just split among more processes.</li>
+  <li><b>Memory.</b> An indexing process reaches 470–810&nbsp;MB during E1, more with fewer replicas, probably because one
+      process then buffers the pending terms of more books until they are published. Ingestion stays around 400&nbsp;MB, and a
+      search process around 110&nbsp;MB while idle and 430–450&nbsp;MB under load. Memory is not a limit on this host.</li>
+</ul>
+
+<h2>JMH microbenchmarks</h2>
+<p>The microbenchmarks measure the core operations without HTTP. <code>TextProcessingBenchmark</code> and
+<code>IndexPublishBenchmark</code> use synthetic books with a 50&nbsp;000-word vocabulary; <code>SearchBenchmark</code> runs a
+fixed workload of 6 queries (with filters) against an index of 100 or 500 synthetic books split into 1 or 10 segments.</p>
+<div class="tbl">
+<div class="cap">JMH results, average time per operation (± error at 99.9&nbsp;%).</div>
+<table>
+<thead><tr><th>Benchmark</th><th>Parameter</th><th class="n">Time per operation</th><th>Benchmark</th><th>Parameter</th><th class="n">Time per operation</th></tr></thead>
+<tbody>
+<tr><td><code>parseHeader</code></td><td>10k / 50k / 100k words</td><td class="n">1.40 / 1.52 / 1.39 µs</td><td><code>publishBatch</code></td><td>1 book</td><td class="n">1.48 ± 0.06 s</td></tr>
+<tr><td><code>splitHeaderBody</code></td><td>10k / 50k / 100k words</td><td class="n">0.20 / 1.01 / 2.06 ms</td><td><code>publishBatch</code></td><td>10 books</td><td class="n">4.97 ± 0.15 s</td></tr>
+<tr><td><code>tokenizeAndCount</code></td><td>10k / 50k / 100k words</td><td class="n">0.66 / 3.29 / 6.86 ms</td><td><code>publishBatch</code></td><td>50 books</td><td class="n">13.0 ± 7.6 s</td></tr>
+<tr><td><code>searchWorkload</code></td><td>100 books, 1 / 10 segments</td><td class="n">1.185 / 1.182 ms</td><td><code>searchWorkload</code></td><td>500 books, 1 / 10 segments</td><td class="n">4.97 / 4.90 ms</td></tr>
+</tbody></table></div>
+<figure><img src="figuras/fig_jmh.png" alt="JMH results">
+<figcaption>JMH. (a) Text processing time against book size (log–log). (b) Cost of publishing a segment, per batch and per
+book. (c) Speedup with threads inside one JVM: throughput of the search workload, and books tokenized per unit of time
+(computed from the average time per operation and the number of threads).</figcaption></figure>
+<ul>
+  <li><b>Text processing</b> is linear in the size of the book. Tokenizing costs about 3 times more than splitting
+      header and body (6.9 against 2.1&nbsp;ms for 100&nbsp;000 words), and parsing the header does not depend on the size
+      of the book (1.4&nbsp;µs). A typical book is processed in a few milliseconds, which matches the 10–20&nbsp;ms of the
+      update call in E1.</li>
+  <li><b>Publication</b> costs 1.48&nbsp;s for a single book, 0.50&nbsp;s per book in batches of 10 and 0.26&nbsp;s per book
+      in batches of 50: larger batches amortise the files of the terms shared by many books, at the price of a longer wait
+      before books become searchable. The large error with 50 books reflects the instability of creating very many files.</li>
+  <li><b>Search</b> time grows with the corpus (×4.2 from 100 to 500 books) and does not depend on the number of
+      segments (1 or 10). Merging segments is therefore not needed for query speed at this scale; compaction mainly limits
+      the number of files.</li>
+  <li><b>Threads.</b> With 8 threads the search workload runs 6.3 times faster and tokenization 6.9 times faster than
+      with one, close to the ideal 8. Both operations are CPU-bound and share no mutable state, so request threads are an
+      effective way to use the cores of one search or indexing process. The smaller gain at 4 threads (2.9–3.2×) is probably
+      due to the hybrid CPU, which mixes performance and efficiency cores.</li>
+</ul>
+
+<h2>Bottlenecks and limitations</h2>
+<ol>
+  <li><b>First bottleneck: index publication</b> (file-system bound). It limits the pipeline to about 2.4 books/s and is
+      not solved by more workers or more indexing replicas on one host.</li>
+  <li><b>Search</b> answered up to 12&nbsp;000 queries/s with sub-millisecond p95 latency at low load; its own limit was not
+      reached because the load generator saturated first. With a larger corpus a query costs more (JMH), and search will
+      become CPU-bound; then threads and replicas will matter.</li>
+  <li><b>Limitations of the evidence.</b> One host shared by services, monitor and load generator; a small corpus
+      (100 books in the integration tests); 3 repetitions per configuration; Windows with NTFS, where creating small
+      files is particularly expensive. A local speedup measures how the architecture uses one machine; it does not show
+      how it will scale on the Stage 3 cluster.</li>
+</ol>
+
+<!-- ================================================================== 7 -->
+<h1>Conclusions and future improvements</h1>
+<h2>Conclusions</h2>
+<ul>
+  <li>The Stage 1 data layer now runs as three independent services and an orchestrator that cooperate through
+      documented HTTP and shared-storage contracts. The pipeline is correct under concurrency: every benchmark run
+      published all its books with no duplicates, no failures and no errors, and the API passes all 54 checks.</li>
+  <li>Immutable segments with an atomically replaced manifest give search a consistent view without any lock on the
+      read path, and the separation between <i>update</i> and <i>publish</i> makes the cost of consistency explicit and
+      tunable.</li>
+  <li>The measured weak point is the physical layout of the segments: one file per term makes publication take tens of
+      seconds and dominates the end-to-end throughput. It confirms the warning of Stage 1 about the hierarchical layout.</li>
+  <li>On one host, adding indexing replicas increases contention instead of throughput, while threads inside one
+      process scale almost linearly for CPU-bound work (6.3–6.9× with 8 threads).</li>
+</ul>
+
+<h2>Evolution towards the Stage 3 cluster</h2>
+<div class="tbl">
+<div class="cap">Single-host assumptions and the change planned for each one.</div>
+<table>
+<thead><tr><th>Current assumption (one host)</th><th>Change for the cluster</th></tr></thead>
+<tbody>
+<tr><td><code>localhost</code> URLs and a static list of replicas in environment variables</td><td>Service discovery (for example the DNS of the container orchestrator) and a load balancer in front of the Search replicas</td></tr>
+<tr><td>Datalake and datamarts as local files</td><td>Shared storage (distributed file system or object storage), or data exposed by each service through its API</td></tr>
+<tr><td><code>FileLock</code> and atomic rename</td><td>Distributed coordination: locks with leases, or transactions of a database (for example a conditional update of the manifest version)</td></tr>
+<tr><td>SQLite, one local writer</td><td>Client-server database (for example PostgreSQL) shared by all indexers and searchers</td></tr>
+<tr><td>A single Control Module</td><td>Persistent message queue (broker) with acknowledgements and retries, or leader election, so that work survives the loss of a node</td></tr>
+<tr><td>Search re-reads a local manifest every 500 ms</td><td>A “new version published” event, or polling of the manifest in the shared storage</td></tr>
+</tbody></table></div>
+<p><b>Distribution of work and requests.</b> Indexing can keep the affinity <i>id</i> mod <i>N</i> as a partition of the
+books among nodes, and the index can be partitioned by a hash of the term so that each node owns a fraction of the
+vocabulary; search requests would be spread by the load balancer. <b>Consistency and failures.</b> The manifest version
+remains the commit point; network timeouts and unavailable nodes are handled with the same idempotent operations and
+retries, now with leases so that the work of a failed node is reassigned.</p>
+<p><b>Future improvements measured as necessary by this stage:</b></p>
+<ul>
+  <li>Store each segment in a few large files (a sorted term dictionary with the postings in one file, or shards by a hash
+      of the term as recommended in Stage 1) instead of one file per term. This attacks the first bottleneck directly.</li>
+  <li>Tune <code>PUBLISH_BATCH</code> and the publication interval to balance throughput against the time until a book is searchable.</li>
+  <li>Repeat E2 with the load generator on another machine (or a compiled load tool) and a larger corpus, to measure the
+      real limit of the search replicas; repeat the whole benchmark on Linux to separate the effect of NTFS.</li>
+</ul>
+
+</body>
+</html>
